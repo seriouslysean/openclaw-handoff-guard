@@ -7,11 +7,11 @@ export const KINDS = [
   'email',
   'us-ssn',
   'us-itin',
+  'credit-card-number',
   'us-bank-account',
   'us-passport',
   'us-driver-license',
   'phone-number',
-  'credit-card-number',
   'ip-address',
   'iban',
   'matrix-id',
@@ -56,16 +56,23 @@ const US_ITIN = new RegExp(String.raw`\b9\d{2}([-. ])${ITIN_GROUP}\1\d{4}\b`);
 
 /**
  * How near a keyword must be: within 30 characters before or after, in any case, a space in it also matching none, "_"
- * or "-" (Amazon Macie, "Keyword requirements for managed data identifiers").
+ * or "-" (Amazon Macie, "Keyword requirements for managed data identifiers"). A plural, a doubled space and a dropped
+ * dot count too.
  */
 const NEAR = 30;
 
 /** A test for a value that is only a run of digits or letters, so it counts only with one of Macie's keywords near it. */
 function named(pattern: string, keywords: readonly string[], minLength = 0): (text: string) => boolean {
   const keyword = keywords
-    .map((word) => word.replaceAll(/[.#]/g, String.raw`\$&`).replaceAll("'", "['’]?").replaceAll(' ', '[\\s_-]?'))
+    .map((word) =>
+      word
+        .replaceAll('.', String.raw`\.?`)
+        .replaceAll('#', String.raw`\#`)
+        .replaceAll("'", "['’]?")
+        .replaceAll(' ', String.raw`[\s_-]*`),
+    )
     .join('|');
-  const word = String.raw`(?<![a-z0-9])(?:${keyword})(?![a-z])`;
+  const word = String.raw`(?<![a-z0-9])(?:${keyword})s?(?![a-z])`;
   const before = new RegExp(String.raw`${word}[\s\S]{0,${NEAR}}$`, 'i');
   const after = new RegExp(String.raw`^[\s\S]{0,${NEAR}}${word}`, 'i');
   const candidate = new RegExp(String.raw`(?<![0-9A-Za-z])(?:${pattern})(?![0-9A-Za-z])`, 'gi');
@@ -86,7 +93,18 @@ function named(pattern: string, keywords: readonly string[], minLength = 0): (te
  */
 const NAMED: readonly [Kind, (text: string) => boolean][] = [
   ['us-ssn', named(String.raw`(?!000|666|9\d\d)\d{3}(?!00)\d{2}(?!0000)\d{4}`, ['social security', 'ss#', 'ssn'])],
-  ['us-itin', named(String.raw`9\d{2}${ITIN_GROUP}\d{4}`, ['i.t.i.n.', 'individual taxpayer identification number', 'itin'])],
+  // An ITIN is issued to someone who can't get an SSN and often goes in a field labelled SSN, so those keywords count.
+  [
+    'us-itin',
+    named(String.raw`9\d{2}${ITIN_GROUP}\d{4}`, [
+      'i.t.i.n.',
+      'individual taxpayer identification number',
+      'itin',
+      'social security',
+      'ss#',
+      'ssn',
+    ]),
+  ],
   [
     'us-bank-account',
     named(String.raw`\d{9,17}`, [
@@ -162,6 +180,13 @@ const TOKEN_SHAPES = [
   /\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/,
   /\bAuthorization:\s*Bearer\s+[A-Za-z0-9._~+/=-]{16,}/i,
 ];
+
+/** A URL's %XX and a JSON string's \n, \r and \t, read back so an escaped separator doesn't glue a value to its keyword. */
+function unescaped(text: string): string {
+  return text
+    .replaceAll(/%[0-9A-F]{2}/gi, (escape) => String.fromCodePoint(Number.parseInt(escape.slice(1), 16)))
+    .replaceAll(/\\[nrt]/g, ' ');
+}
 
 /**
  * Format characters (zero-width and the like) are removed and compatibility forms folded (NFKC), so "４１１１" and a
@@ -249,8 +274,10 @@ export async function findPersonalData(raw: string, kinds: readonly Kind[] = DEF
   if (wanted.has('us-itin') && US_ITIN.test(text)) {
     found.add('us-itin');
   }
+  // Each form is checked apart, so a keyword at the end of one can't name a number at the start of the next.
+  const forms = [...new Set([raw, folded, unescaped(folded)])];
   for (const [kind, has] of NAMED) {
-    if (wanted.has(kind) && has(text)) {
+    if (wanted.has(kind) && forms.some(has)) {
       found.add(kind);
     }
   }

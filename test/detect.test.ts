@@ -48,6 +48,15 @@ const FOUND: [string, string][] = [
   ['us-driver-license', "Wulfgar's driver's license is D1234567"],
   ['us-driver-license', 'dl# S12345678'],
   ['us-driver-license', 'drivers-license: 123456789'],
+  // Found by review: an escaped separator, a plural or doubled space in the keyword, and an ITIN written as an SSN.
+  ['us-ssn', '/lookup?ssn=%20123456789'],
+  ['us-ssn', 'ssn%3D123456789'],
+  ['us-ssn', String.raw`{"note": "ssn:\n123456789"}`],
+  ['us-ssn', 'SSNs: 123456789'],
+  ['us-ssn', 'social  security 123456789'],
+  ['us-itin', 'i.t.i.n 912901234'],
+  ['us-itin', "Catti-brie's SSN: 912901234"],
+  ['credit-card-number', 'checking account 4111111111111111'],
 ];
 
 for (const [kind, text] of FOUND) {
@@ -87,6 +96,8 @@ const RESEARCH = [
   "driver's license class A1 and CDL-B rules",
   'the ssn column is described in the schema docs, then row 123456789',
   'social security trustees report for 2026',
+  // The original and the folded text are checked apart, so a keyword at the end of one can't name a number in the other.
+  `123456789 is the build number${' '.repeat(40)}ａ the ssn`,
 ];
 
 for (const text of RESEARCH) {
