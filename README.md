@@ -46,7 +46,7 @@ To turn it off, run `openclaw plugins disable pii-guard`.
 ## Bounds
 
 - **Scoped:** only `sessions_send` and `sessions_spawn`, and only the text they hand over. Every other tool call passes untouched.
-- **Some false positives:** a bare ten-digit number (including an ISBN-10) reads as a phone number, and `git@host:org/repo` as an email address. The block reason says which kind, so the agent can rephrase.
+- **Some false positives:** some ten-digit numbers, such as an ISBN-10, read as a phone number. The block reason says which kind, so the agent can rephrase.
 - **Fixed formats only:** names, addresses and private facts in free text aren't formats, so they pass. Catching them needs a classifier or a model, which is a different plugin.
 - **Fails closed:** agent text it can't read is blocked, and OpenClaw blocks the call if the handler throws or exceeds its timeout.
 - **Agents only:** text sent from the CLI or the Control UI doesn't go through an agent's tools, so the hook never sees it.
