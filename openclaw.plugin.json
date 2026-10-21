@@ -22,7 +22,7 @@
         "type": "array",
         "items": {
           "type": "string",
-          "enum": ["email", "us-ssn", "phone-number", "credit-card-number", "ip-address", "iban", "matrix-id", "credential"]
+          "enum": ["email", "us-ssn", "us-itin", "credit-card-number", "us-bank-account", "us-passport", "us-driver-license", "phone-number", "ip-address", "iban", "matrix-id", "credential"]
         },
         "description": "The kinds to block. Default: every kind except ip-address."
       }

@@ -33,6 +33,30 @@ const FOUND: [string, string][] = [
   ['email', 'mail wulfgar@example.\u092D\u093E\u0930\u0924'],
   ['credential', `token ${['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'].join('.')}`],
   ['credential', `Authorization: Bearer ${'abcDEF123456ghiJKL7890'}`],
+  // US identifiers that are only a run of digits or letters, so a keyword within 30 characters must name them.
+  ['us-ssn', "Cadderly's SSN: 123456789"],
+  ['us-ssn', '{"social_security": "123456789"}'],
+  ['us-ssn', '123456789 is the ss# on file'],
+  ['us-itin', 'Danica filed with 912-90-1234'],
+  ['us-itin', 'her itin=912951234'],
+  ['us-itin', 'Individual Taxpayer Identification Number 912701234'],
+  ['us-bank-account', "Bruenor's checking account is 000123456789"],
+  ['us-bank-account', 'bank_account=12345678901234567'],
+  ['us-bank-account', 'savings acct 123456789'],
+  ['us-passport', "Drizzt's passport number is 123456789"],
+  ['us-passport', 'travel document c12345678'],
+  ['us-driver-license', "Wulfgar's driver's license is D1234567"],
+  ['us-driver-license', 'dl# S12345678'],
+  ['us-driver-license', 'drivers-license: 123456789'],
+  // Found by review: an escaped separator, a plural or doubled space in the keyword, and an ITIN written as an SSN.
+  ['us-ssn', '/lookup?ssn=%20123456789'],
+  ['us-ssn', 'ssn%3D123456789'],
+  ['us-ssn', String.raw`{"note": "ssn:\n123456789"}`],
+  ['us-ssn', 'SSNs: 123456789'],
+  ['us-ssn', 'social  security 123456789'],
+  ['us-itin', 'i.t.i.n 912901234'],
+  ['us-itin', "Catti-brie's SSN: 912901234"],
+  ['credit-card-number', 'checking account 4111111111111111'],
 ];
 
 for (const [kind, text] of FOUND) {
@@ -65,6 +89,15 @@ const RESEARCH = [
   // Slash dates are not phone numbers.
   'the certificate renews 08/29',
   'first released 03/14/1990',
+  // Keyword-required identifiers: a near word that isn't the keyword, a keyword too far away, or no long number.
+  'my AWS account 123456789012 hit its quota',
+  'the itinerary lists booking 912781234',
+  'passport photos are 600 by 600 pixels',
+  "driver's license class A1 and CDL-B rules",
+  'the ssn column is described in the schema docs, then row 123456789',
+  'social security trustees report for 2026',
+  // The original and the folded text are checked apart, so a keyword at the end of one can't name a number in the other.
+  `123456789 is the build number${' '.repeat(40)}ａ the ssn`,
 ];
 
 for (const text of RESEARCH) {
