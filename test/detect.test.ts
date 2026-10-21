@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { DEFAULT_KINDS, KINDS, findPersonalData } from '../src/detect.ts';
+import { DEFAULT_KINDS, KINDS, findPersonalData, normalise } from '../src/detect.ts';
 
 // Synthetic values only: reserved domains, fictional numbers, published test card and IBAN numbers. Token-shaped
 // values are assembled at run time so no secret scanner mistakes this file for a leak.
@@ -16,6 +16,18 @@ const FOUND: [string, string][] = [
   ['matrix-id', 'the room is !abcdefgh:example.org'],
   ['credential', `use ghp_${'A1b2C3d4E5'.repeat(3)}abcdef for it`],
   ['credential', `xoxb-${'1234567890'}-${'1234567890'}-${'abcdefghijklmnopqrstuvwx'}`],
+  // Variants found by review: separators, case, grouping and hidden characters must not hide a value.
+  ['us-ssn', 'their number is 123 45 6789'],
+  ['us-ssn', 'their number is 123.45.6789'],
+  ['us-ssn', 'their number is 123-45-\u200B6789'],
+  ['iban', 'account gb82west12345698765432'],
+  ['iban', 'account GB82-WEST-1234-5698-7654-32'],
+  ['iban', 'account GB82 WEST 1234\n5698 7654 32'],
+  ['credit-card-number', 'card 4111\u200B1111\u200B1111\u200B1111'],
+  ['credit-card-number', 'card ４１１１ １１１１ １１１１ １１１１'],
+  ['email', 'write to someone@example\u3002org'],
+  ['credential', `token ${['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'].join('.')}`],
+  ['credential', `Authorization: Bearer ${'abcDEF123456ghiJKL7890'}`],
 ];
 
 for (const [kind, text] of FOUND) {
@@ -38,6 +50,10 @@ const RESEARCH = [
   'compare GB82 and DE89 rates',
   'a token prefix like ghp_ is a GitHub token',
   'published at 2026-10-21T05:14:08Z, build 123-45-678',
+  // False positives found by review: ISSNs, ratios and times are not phone numbers or Matrix ids.
+  'ISSN 0378-5955 and 0028-0836',
+  'ranked #1:2.5x faster, #3:1.5 odds, seed #12:30.5, @10:30.5',
+  'a 123456789 row table',
 ];
 
 for (const text of RESEARCH) {
@@ -65,6 +81,14 @@ test('an SSN that is never issued passes', async () => {
   for (const text of ['000-12-3456', '666-12-3456', '900-12-3456', '123-00-4567', '123-45-0000']) {
     assert.equal(await findPersonalData(text, ['us-ssn']), undefined, text);
   }
+});
+
+test('an SSN shape is named as one, not as a phone number', async () => {
+  assert.equal(await findPersonalData('ticket 123-45-6789'), 'us-ssn');
+});
+
+test('normalising removes format characters and folds compatibility forms', () => {
+  assert.equal(normalise('a\u200Bb\u2060c ４２ x\u3002y'), 'abc 42 x.y');
 });
 
 test('the first kind in order is reported when several are present', async () => {

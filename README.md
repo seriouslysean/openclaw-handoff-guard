@@ -8,6 +8,8 @@ An agent that can't reach the web can still ask one that can: the text it sends 
 
 ## What it blocks
 
+The block reason the agent sees (the host's wrapper line is illustrative until it is checked on a live gateway, see [docs/verification.md](docs/verification.md)):
+
 ```text
 Tool "openclaw:core:sessions_send" was blocked before execution: Blocked: this text for <agent> contains an email address. Rephrase without it, or ask the owner.
 ```
@@ -15,13 +17,13 @@ Tool "openclaw:core:sessions_send" was blocked before execution: Blocked: this t
 | Kind | Detected by |
 | --- | --- |
 | `email`, `phone-number`, `credit-card-number` | [@arcjet/redact](https://github.com/arcjet/arcjet-js/tree/main/redact) (local, WebAssembly) |
-| `credential` | [secretlint](https://github.com/secretlint/secretlint)'s recommended preset (provider tokens, private keys, basic-auth and database connection URLs) |
-| `iban` | candidates checked by [ibantools](https://github.com/Simplify/ibantools) (country format and checksum) |
 | `us-ssn` | a pattern excluding numbers never issued |
+| `credential` | [secretlint](https://github.com/secretlint/secretlint)'s recommended preset (provider tokens, private keys, basic-auth and database connection URLs), plus JSON Web Tokens and bearer headers |
+| `iban` | candidates checked by [ibantools](https://github.com/Simplify/ibantools) (country format and checksum) |
 | `matrix-id` | a pattern for user, room and alias ids |
 | `ip-address` | @arcjet/redact; off by default, since public addresses are routine in research |
 
-The matched value is never repeated in the block reason, which reaches the transcript and the logs. Text it can't read is blocked. Details are in [docs/how-it-works.md](docs/how-it-works.md).
+Every text field of the call is checked: the message or task, a spawn's label, attachments (base64 ones decoded) and output schema, and any field it doesn't know. Zero-width characters are removed and full-width digits folded first. The matched value is never repeated in the block reason, which reaches the transcript and the logs. Text it can't read is blocked. Details and known gaps are in [docs/how-it-works.md](docs/how-it-works.md).
 
 ## Install
 
@@ -44,6 +46,7 @@ To turn it off, run `openclaw plugins disable pii-guard`.
 ## Bounds
 
 - **Scoped:** only `sessions_send` and `sessions_spawn`, and only the text they hand over. Every other tool call passes untouched.
+- **Some false positives:** a bare ten-digit number (including an ISBN-10) reads as a phone number, and `git@host:org/repo` as an email address. The block reason says which kind, so the agent can rephrase.
 - **Fixed formats only:** names, addresses and private facts in free text aren't formats, so they pass. Catching them needs a classifier or a model, which is a different plugin.
 - **Fails closed:** agent text it can't read is blocked, and OpenClaw blocks the call if the handler throws or exceeds its timeout.
 - **Agents only:** text sent from the CLI or the Control UI doesn't go through an agent's tools, so the hook never sees it.

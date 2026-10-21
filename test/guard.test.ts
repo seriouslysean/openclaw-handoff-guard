@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { DEFAULT_KINDS } from '../src/detect.ts';
+import { DEFAULT_KINDS, findPersonalData, resetEngine } from '../src/detect.ts';
 import { type HookApi, PLUGIN_ID, UNREADABLE_REASON, decide, register, resolveConfig } from '../src/guard.ts';
 
 const email = { toolName: 'sessions_send', params: { agentId: 'helper', message: 'mail someone@example.org' } };
@@ -73,4 +73,22 @@ test('the manifest id and kinds match the code', async () => {
   assert.equal(manifest.id, PLUGIN_ID);
   const { KINDS } = await import('../src/detect.ts');
   assert.match(JSON.stringify(manifest), new RegExp(JSON.stringify(KINDS).replaceAll(/[[\]]/g, '\\$&')));
+});
+
+test('an engine that failed to start is not cached, so one failure does not block every later call', async () => {
+  let starts = 0;
+  const real = (await import('@secretlint/node')).createEngine;
+  resetEngine(() => {
+    starts += 1;
+    return starts === 1
+      ? Promise.reject(new Error('start failed'))
+      : real({ formatter: 'json', configFileJSON: { rules: [{ id: '@secretlint/secretlint-rule-preset-recommend' }] } });
+  });
+  try {
+    await assert.rejects(findPersonalData('plain text', ['credential']), /start failed/);
+    assert.equal(await findPersonalData('plain text', ['credential']), undefined);
+    assert.equal(starts, 2);
+  } finally {
+    resetEngine();
+  }
 });
