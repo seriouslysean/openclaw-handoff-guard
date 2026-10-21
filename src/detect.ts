@@ -46,6 +46,16 @@ const MATRIX_ID = /(?<![\w.%+-])[@!#](?=[A-Za-z0-9._=/+-]*[A-Za-z])[A-Za-z0-9._=
 /** A country code, two check digits and 11 to 30 more characters, in any case and grouped or not; the checksum decides. */
 const IBAN_CANDIDATE = /\b[A-Z]{2}\d{2}(?:[\s-]?[A-Z0-9]){11,30}\b/gi;
 
+/**
+ * Matches that can't be what the kind names. SMTP takes only fully qualified domain names (RFC 5321 section 2.3.5), so a
+ * domain with no dot, or one starting with a dot, is not a mailbox; anything else blocks, glued text and IP literals
+ * included. A slash date such as "08/29" or "03/14/1990" is not a phone number.
+ */
+const NOT_A_MATCH: Partial<Record<ArcjetKind, RegExp>> = {
+  email: /@(?:\.|[^.]*$)/,
+  'phone-number': /^\d{1,2}\/\d{1,2}(?:\/(?:\d{2}|\d{4}))?$/,
+};
+
 /** ISSNs (NNNN-NNNC) read as phone numbers to the phone detector, so they are masked for that pass only. */
 const ISSN = /\b\d{4}-\d{3}[\dX]\b/gi;
 
@@ -71,8 +81,10 @@ async function arcjetKinds(text: string, wanted: ReadonlySet<Kind>): Promise<Kin
   const found: Kind[] = [];
   await redact(text.replaceAll(ISSN, (issn) => ' '.repeat(issn.length)), {
     entities,
-    replace: (entity) => {
-      found.push(entity);
+    replace: (entity, value) => {
+      if (!NOT_A_MATCH[entity]?.test(value)) {
+        found.push(entity);
+      }
       return undefined;
     },
   });

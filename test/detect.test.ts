@@ -26,6 +26,11 @@ const FOUND: [string, string][] = [
   ['credit-card-number', 'card 4111\u200B1111\u200B1111\u200B1111'],
   ['credit-card-number', 'card ４１１１ １１１１ １１１１ １１１１'],
   ['email', 'write to someone@example\u3002org'],
+  ['email', 'write to danica@mail.example.org'],
+  // Found by review: arcjet's match can carry glued text, and a domain can be an IP literal or a TLD with marks.
+  ['email', 'mail drizzt@example.org-thanks'],
+  ['email', 'mail regis@[192.0.2.1]'],
+  ['email', 'mail wulfgar@example.\u092D\u093E\u0930\u0924'],
   ['credential', `token ${['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'].join('.')}`],
   ['credential', `Authorization: Bearer ${'abcDEF123456ghiJKL7890'}`],
 ];
@@ -54,6 +59,12 @@ const RESEARCH = [
   'ISSN 0378-5955 and 0028-0836',
   'ranked #1:2.5x faster, #3:1.5 odds, seed #12:30.5, @10:30.5',
   'a 123456789 row table',
+  // An address on a domain with no top-level domain can't reach a person: unit templates, plugin ids, local hosts.
+  'restart backup-alert@.service and install linter@plugin-market',
+  'ssh cadderly@localhost first',
+  // Slash dates are not phone numbers.
+  'the certificate renews 08/29',
+  'first released 03/14/1990',
 ];
 
 for (const text of RESEARCH) {
