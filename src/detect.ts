@@ -47,11 +47,12 @@ const MATRIX_ID = /(?<![\w.%+-])[@!#](?=[A-Za-z0-9._=/+-]*[A-Za-z])[A-Za-z0-9._=
 const IBAN_CANDIDATE = /\b[A-Z]{2}\d{2}(?:[\s-]?[A-Z0-9]){11,30}\b/gi;
 
 /**
- * Matches that can't be what the kind names: an address needs a domain with a top-level domain to reach anyone
- * (RFC 5321 section 2.3.5), and a slash date such as "08/29" or "03/14/1990" is not a phone number.
+ * Matches that can't be what the kind names. SMTP takes only fully qualified domain names (RFC 5321 section 2.3.5), so a
+ * domain with no dot, or one starting with a dot, is not a mailbox; anything else blocks, glued text and IP literals
+ * included. A slash date such as "08/29" or "03/14/1990" is not a phone number.
  */
 const NOT_A_MATCH: Partial<Record<ArcjetKind, RegExp>> = {
-  email: /@(?!(?:[\p{L}\p{N}-]+\.)+(?:\p{L}{2,}|xn--[a-z0-9-]+)$)/iu,
+  email: /@(?:\.|[^.]*$)/,
   'phone-number': /^\d{1,2}\/\d{1,2}(?:\/(?:\d{2}|\d{4}))?$/,
 };
 

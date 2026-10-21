@@ -4,7 +4,7 @@
 
 - **Unit tests** (`npm test`) cover:
   - each kind found in a synthetic sample, including separator, case, line-break, zero-width and full-width variants;
-  - research text that must pass (versions, ISBN-13s, ISSNs, DOIs, ports, prices, dates and slash dates, dice notation, ratios, bare prefixes, and addresses on domains with no top-level domain);
+  - research text that must pass (versions, ISBN-13s, ISSNs, DOIs, ports, prices, dates and slash dates, dice notation, ratios, bare prefixes, and addresses whose domain has no dot or starts with one);
   - IBANs with a wrong check digit and SSNs that are never issued, both passing;
   - the receiving agent for each call shape in OpenClaw's own order, and exemptions that match only a known id;
   - every text field checked, attachments raw and base64-decoded, selectors skipped, and tool names compared without namespace or case;
