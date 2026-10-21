@@ -17,7 +17,8 @@ Tool "openclaw:core:sessions_send" was blocked before execution: Blocked: this t
 | Kind | Detected by |
 | --- | --- |
 | `email`, `phone-number`, `credit-card-number` | [@arcjet/redact](https://github.com/arcjet/arcjet-js/tree/main/redact) (local, WebAssembly) |
-| `us-ssn` | a pattern excluding numbers never issued |
+| `us-ssn` | a pattern excluding numbers never issued; nine digits in a row only with a keyword such as "SSN" near them |
+| `us-itin`, `us-bank-account`, `us-passport`, `us-driver-license` | [Presidio](https://github.com/microsoft/presidio)'s US patterns, each needing one of [Amazon Macie](https://docs.aws.amazon.com/macie/latest/user/managed-data-identifiers.html)'s keywords within 30 characters (a separated ITIN needs none) |
 | `credential` | [secretlint](https://github.com/secretlint/secretlint)'s recommended preset (provider tokens, private keys, basic-auth and database connection URLs), plus JSON Web Tokens and bearer headers |
 | `iban` | candidates checked by [ibantools](https://github.com/Simplify/ibantools) (country format and checksum) |
 | `matrix-id` | a pattern for user, room and alias ids |

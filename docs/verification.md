@@ -6,6 +6,7 @@
   - each kind found in a synthetic sample, including separator, case, line-break, zero-width and full-width variants;
   - research text that must pass (versions, ISBN-13s, ISSNs, DOIs, ports, prices, dates and slash dates, dice notation, ratios, bare prefixes, and addresses whose domain has no dot or starts with one);
   - IBANs with a wrong check digit and SSNs that are never issued, both passing;
+  - keyword-named US identifiers found with a keyword before or after, in a JSON key and with `_` or `-` for a space, and passing with a word that only contains a keyword (`itinerary`), a keyword over 30 characters away, `AWS account` and license class codes;
   - the receiving agent for each call shape in OpenClaw's own order, and exemptions that match only a known id;
   - every text field checked, attachments raw and base64-decoded, selectors skipped, and tool names compared without namespace or case;
   - a detector engine that fails to start is retried, not cached;

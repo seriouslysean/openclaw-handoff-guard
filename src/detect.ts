@@ -6,6 +6,10 @@ import { electronicFormatIBAN, isValidIBAN } from 'ibantools';
 export const KINDS = [
   'email',
   'us-ssn',
+  'us-itin',
+  'us-bank-account',
+  'us-passport',
+  'us-driver-license',
   'phone-number',
   'credit-card-number',
   'ip-address',
@@ -25,6 +29,10 @@ export const KIND_NAMES: Record<Kind, string> = {
   'ip-address': 'an IP address',
   iban: 'a bank account number (IBAN)',
   'us-ssn': 'a US Social Security number',
+  'us-itin': 'a US Individual Taxpayer Identification Number',
+  'us-bank-account': 'a US bank account number',
+  'us-passport': 'a US passport number',
+  'us-driver-license': "a US driver's license number",
   'matrix-id': 'a Matrix user, room or alias id',
   credential: 'a credential or token',
 };
@@ -38,6 +46,96 @@ function isArcjetKind(kind: Kind): kind is ArcjetKind {
 
 /** Area 000, 666 and 9xx, group 00 and serial 0000 are never issued (US Social Security Administration, "Social Security Number Randomization"). */
 const US_SSN = /\b(?!000|666|9\d\d)\d{3}([-. ])(?!00)\d{2}\1(?!0000)\d{4}\b/;
+
+/**
+ * Area 9xx with a group from 50–65, 70–88, 90–92 or 94–99 (Presidio's UsItinRecognizer; python-stdnum's us.itin).
+ * Separated like an SSN, it needs no keyword; nine digits in a row need one (below).
+ */
+const ITIN_GROUP = String.raw`(?:5\d|6[0-5]|7\d|8[0-8]|9[0-24-9])`;
+const US_ITIN = new RegExp(String.raw`\b9\d{2}([-. ])${ITIN_GROUP}\1\d{4}\b`);
+
+/**
+ * How near a keyword must be: within 30 characters before or after, in any case, a space in it also matching none, "_"
+ * or "-" (Amazon Macie, "Keyword requirements for managed data identifiers").
+ */
+const NEAR = 30;
+
+/** A test for a value that is only a run of digits or letters, so it counts only with one of Macie's keywords near it. */
+function named(pattern: string, keywords: readonly string[], minLength = 0): (text: string) => boolean {
+  const keyword = keywords
+    .map((word) => word.replaceAll(/[.#]/g, String.raw`\$&`).replaceAll("'", "['’]?").replaceAll(' ', '[\\s_-]?'))
+    .join('|');
+  const word = String.raw`(?<![a-z0-9])(?:${keyword})(?![a-z])`;
+  const before = new RegExp(String.raw`${word}[\s\S]{0,${NEAR}}$`, 'i');
+  const after = new RegExp(String.raw`^[\s\S]{0,${NEAR}}${word}`, 'i');
+  const candidate = new RegExp(String.raw`(?<![0-9A-Za-z])(?:${pattern})(?![0-9A-Za-z])`, 'gi');
+  return (text) =>
+    [...text.matchAll(candidate)].some(({ 0: value, index }) => {
+      const end = index + value.length;
+      return (
+        value.length >= minLength &&
+        (before.test(text.slice(Math.max(0, index - 100), index)) || after.test(text.slice(end, end + 100)))
+      );
+    });
+}
+
+/**
+ * Keyword lists are Macie's managed data identifiers for the US; patterns are Presidio's US recognizers, the bank
+ * account's 9 to 17 digits Macie's. Presidio's driver's license pattern has its missing "[" restored, and a match needs
+ * five characters, so class codes such as "A1" pass.
+ */
+const NAMED: readonly [Kind, (text: string) => boolean][] = [
+  ['us-ssn', named(String.raw`(?!000|666|9\d\d)\d{3}(?!00)\d{2}(?!0000)\d{4}`, ['social security', 'ss#', 'ssn'])],
+  ['us-itin', named(String.raw`9\d{2}${ITIN_GROUP}\d{4}`, ['i.t.i.n.', 'individual taxpayer identification number', 'itin'])],
+  [
+    'us-bank-account',
+    named(String.raw`\d{9,17}`, [
+      'bank account',
+      'bank acct',
+      'checking account',
+      'checking acct',
+      'deposit account',
+      'deposit acct',
+      'savings account',
+      'savings acct',
+      'chequing account',
+      'chequing acct',
+    ]),
+  ],
+  ['us-passport', named(String.raw`\d{9}|[A-Z]\d{8}`, ['passport', 'travel document'])],
+  [
+    'us-driver-license',
+    named(
+      String.raw`[A-Z][0-9]{3,6}|[A-Z][0-9]{5,9}|[A-Z][0-9]{6,8}|[A-Z][0-9]{4,8}|[A-Z][0-9]{9,11}|[A-Z]{1,2}[0-9]{5,6}|H[0-9]{8}|V[0-9]{6}|X[0-9]{8}|[A-Z]{2}[0-9]{2,5}|[A-Z]{2}[0-9]{3,7}|[0-9]{2}[A-Z]{3}[0-9]{5,6}|[A-Z][0-9]{13,14}|[A-Z][0-9]{18}|[A-Z][0-9]{6}R|[A-Z][0-9]{9}|[A-Z][0-9]{1,12}|[0-9]{9}[A-Z]|[A-Z]{2}[0-9]{6}[A-Z]|[0-9]{8}[A-Z]{2}|[0-9]{3}[A-Z]{2}[0-9]{4}|[A-Z][0-9][A-Z][0-9][A-Z]|[0-9]{7,8}[A-Z]|[0-9]{6,14}|[0-9]{16}`,
+      [
+        'dl#',
+        'dl:',
+        'dlno#',
+        'driver licence',
+        'driver licences',
+        'driver license',
+        'driver licenses',
+        'driver permit',
+        'drivers lic.',
+        'drivers licence',
+        "driver's licence",
+        'drivers licences',
+        "driver's licences",
+        'drivers license',
+        "driver's license",
+        'drivers licenses',
+        "driver's licenses",
+        'drivers permit',
+        "driver's permit",
+        'drivers permit number',
+        'driving licence',
+        'driving license',
+        'driving permit',
+      ],
+      5,
+    ),
+  ],
+];
 
 /** A sigil, a localpart and a server name with a dot (Matrix specification, appendix "Common Identifier Format"). */
 // The localpart needs a letter and the server an alphabetic TLD, so "#1:2.5x" and "@10:30.5" are not ids.
@@ -147,6 +245,14 @@ export async function findPersonalData(raw: string, kinds: readonly Kind[] = DEF
   }
   if (wanted.has('us-ssn') && US_SSN.test(text)) {
     found.add('us-ssn');
+  }
+  if (wanted.has('us-itin') && US_ITIN.test(text)) {
+    found.add('us-itin');
+  }
+  for (const [kind, has] of NAMED) {
+    if (wanted.has(kind) && has(text)) {
+      found.add(kind);
+    }
   }
   if (wanted.has('matrix-id') && MATRIX_ID.test(text)) {
     found.add('matrix-id');

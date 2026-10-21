@@ -9,3 +9,4 @@ First version, built and tested against OpenClaw 2026.10.5.
 - Blocks agent text it can't read.
 - Passes email-shaped text whose domain has no dot or starts with one, such as `unit@.service`, plugin ids and `localhost`, and slash dates that read as phone numbers.
 - Checks text to every agent; `allowTargets` exempts listed ones, and `kinds` chooses what is blocked.
+- Blocks US ITINs, bank account, passport and driver's license numbers, and unseparated Social Security numbers, when one of Amazon Macie's keywords for them is within 30 characters. A separated ITIN blocks without one.
