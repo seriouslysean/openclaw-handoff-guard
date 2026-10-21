@@ -1,0 +1,31 @@
+{
+  "id": "pii-guard",
+  "name": "PII Guard",
+  "description": "Blocks known personal-data formats (emails, phone and card numbers, IBANs, US SSNs, Matrix ids, credentials) in text an agent sends to another agent. Deterministic; blocks text it can't read.",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "allowTargets": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "Agent ids whose incoming text is not checked, such as agents with no web or channel access. Empty (the default) means text to every agent is checked.",
+        "default": []
+      },
+      "kinds": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["email", "phone-number", "credit-card-number", "ip-address", "iban", "us-ssn", "matrix-id", "credential"]
+        },
+        "description": "The kinds to block. Default: every kind except ip-address."
+      }
+    }
+  }
+}
