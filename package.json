@@ -1,8 +1,8 @@
 {
-  "name": "@seriouslysean/openclaw-pii-guard",
+  "name": "@seriouslysean/openclaw-leak-guard",
   "version": "0.1.0",
   "private": true,
-  "description": "An OpenClaw plugin that blocks known personal-data formats in text an agent sends to another agent.",
+  "description": "An OpenClaw plugin that checks text an agent sends to another agent for secrets and personal data, by group, with a mode per group.",
   "keywords": [
     "openclaw",
     "openclaw-plugin",

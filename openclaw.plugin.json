@@ -1,7 +1,7 @@
 {
-  "id": "pii-guard",
-  "name": "PII Guard",
-  "description": "Blocks known personal-data formats (emails, phone and card numbers, IBANs, US SSNs, Matrix ids, credentials) in text an agent sends to another agent. Deterministic; blocks text it can't read.",
+  "id": "leak-guard",
+  "name": "Leak Guard",
+  "description": "Checks text an agent sends to another agent for secrets and personal data, by group (secrets, structured-pii, contextual-pii), with a mode per group: block, approve, warn or off. Deterministic; blocks text it can't read.",
   "activation": {
     "onStartup": true
   },
@@ -9,22 +9,193 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
+      "groups": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Per-group mode and kinds. An unknown mode or kind falls back to the group's default.",
+        "properties": {
+          "secrets": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "block",
+                  "approve",
+                  "warn",
+                  "off"
+                ],
+                "description": "block: refuse the call. approve: ask the owner first (allow once or deny; a timeout denies). warn: let the call through and log the kind, never the value. off: do not check the group."
+              },
+              "kinds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "email",
+                    "us-ssn",
+                    "us-itin",
+                    "credit-card-number",
+                    "us-bank-account",
+                    "us-passport",
+                    "us-driver-license",
+                    "phone-number",
+                    "ip-address",
+                    "iban",
+                    "matrix-id",
+                    "credential"
+                  ]
+                },
+                "description": "Kinds to check. Default: credential."
+              }
+            }
+          },
+          "structured-pii": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "block",
+                  "approve",
+                  "warn",
+                  "off"
+                ],
+                "description": "block: refuse the call. approve: ask the owner first (allow once or deny; a timeout denies). warn: let the call through and log the kind, never the value. off: do not check the group."
+              },
+              "kinds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "email",
+                    "us-ssn",
+                    "us-itin",
+                    "credit-card-number",
+                    "us-bank-account",
+                    "us-passport",
+                    "us-driver-license",
+                    "phone-number",
+                    "ip-address",
+                    "iban",
+                    "matrix-id",
+                    "credential"
+                  ]
+                },
+                "description": "Kinds to check. Default: every structured-pii kind but ip-address."
+              }
+            }
+          },
+          "contextual-pii": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "block",
+                  "approve",
+                  "warn",
+                  "off"
+                ],
+                "description": "block: refuse the call. approve: ask the owner first (allow once or deny; a timeout denies). warn: let the call through and log the kind, never the value. off: do not check the group."
+              },
+              "kinds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "email",
+                    "us-ssn",
+                    "us-itin",
+                    "credit-card-number",
+                    "us-bank-account",
+                    "us-passport",
+                    "us-driver-license",
+                    "phone-number",
+                    "ip-address",
+                    "iban",
+                    "matrix-id",
+                    "credential"
+                  ]
+                },
+                "description": "Kinds to check. None exist yet."
+              }
+            }
+          }
+        }
+      },
+      "targets": {
+        "type": "object",
+        "description": "Per receiving agent id: a mode per group that replaces the group's own, such as {\"helper\": {\"structured-pii\": \"off\"}}.",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "secrets": {
+              "type": "string",
+              "enum": [
+                "block",
+                "approve",
+                "warn",
+                "off"
+              ],
+              "description": "block: refuse the call. approve: ask the owner first (allow once or deny; a timeout denies). warn: let the call through and log the kind, never the value. off: do not check the group."
+            },
+            "structured-pii": {
+              "type": "string",
+              "enum": [
+                "block",
+                "approve",
+                "warn",
+                "off"
+              ],
+              "description": "block: refuse the call. approve: ask the owner first (allow once or deny; a timeout denies). warn: let the call through and log the kind, never the value. off: do not check the group."
+            },
+            "contextual-pii": {
+              "type": "string",
+              "enum": [
+                "block",
+                "approve",
+                "warn",
+                "off"
+              ],
+              "description": "block: refuse the call. approve: ask the owner first (allow once or deny; a timeout denies). warn: let the call through and log the kind, never the value. off: do not check the group."
+            }
+          }
+        }
+      },
       "allowTargets": {
         "type": "array",
         "items": {
           "type": "string",
           "minLength": 1
         },
-        "description": "Agent ids whose incoming text is not checked, such as agents with no web or channel access. Empty (the default) means text to every agent is checked.",
+        "description": "Deprecated: use targets. Agent ids whose incoming text is not checked by any group.",
         "default": []
       },
       "kinds": {
         "type": "array",
         "items": {
           "type": "string",
-          "enum": ["email", "us-ssn", "us-itin", "credit-card-number", "us-bank-account", "us-passport", "us-driver-license", "phone-number", "ip-address", "iban", "matrix-id", "credential"]
+          "enum": [
+            "email",
+            "us-ssn",
+            "us-itin",
+            "credit-card-number",
+            "us-bank-account",
+            "us-passport",
+            "us-driver-license",
+            "phone-number",
+            "ip-address",
+            "iban",
+            "matrix-id",
+            "credential"
+          ]
         },
-        "description": "The kinds to block. Default: every kind except ip-address."
+        "description": "Deprecated: use groups.<group>.kinds. The kinds to check, split into their groups."
       }
     }
   }

@@ -19,6 +19,22 @@ export const KINDS = [
 ] as const;
 export type Kind = (typeof KINDS)[number];
 
+/** The groups a kind belongs to: they set the mode a match is handled with (see `guard.ts`). */
+export const GROUPS = ['secrets', 'structured-pii', 'contextual-pii'] as const;
+export type Group = (typeof GROUPS)[number];
+
+/** `contextual-pii` has no kinds yet: deterministic context patterns are added to it later. */
+export const GROUP_KINDS: Record<Group, readonly Kind[]> = {
+  secrets: ['credential'],
+  'structured-pii': KINDS.filter((kind) => kind !== 'credential'),
+  'contextual-pii': [],
+};
+
+export const DEFAULT_GROUP_KINDS: Record<Group, readonly Kind[]> = {
+  ...GROUP_KINDS,
+  'structured-pii': GROUP_KINDS['structured-pii'].filter((kind) => kind !== 'ip-address'),
+};
+
 /** Public IP addresses are routine in research about networks and services, so they pass unless configured. */
 export const DEFAULT_KINDS: readonly Kind[] = KINDS.filter((kind) => kind !== 'ip-address');
 
