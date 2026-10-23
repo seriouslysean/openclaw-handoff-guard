@@ -1,4 +1,5 @@
 import { DEFAULT_GROUP_KINDS, GROUPS, GROUP_KINDS, KINDS, KIND_NAMES, type Group, type Kind, findPersonalData } from './detect.ts';
+import { accessSync, constants } from 'node:fs';
 import { outboundText } from './rules.ts';
 
 export const PLUGIN_ID = 'leak-guard';
@@ -12,6 +13,8 @@ const DEFAULT_MODES: Record<Group, Mode> = { secrets: 'block', 'structured-pii':
 export interface GroupConfig {
   mode: Mode;
   kinds: Kind[];
+  /** `secrets` only: the gitleaks binary, from `groups.secrets.gitleaks.binary`. */
+  gitleaks?: string;
 }
 
 export interface GuardConfig {
@@ -87,10 +90,12 @@ export function resolveConfig(raw: unknown): GuardConfig {
   const groupConfig = (group: Group): GroupConfig => {
     const entry = isRecord(groupsRaw[group]) ? groupsRaw[group] : {};
     const explicit = kindsOf(group, entry.kinds);
+    const gitleaks = group === 'secrets' && isRecord(entry.gitleaks) ? entry.gitleaks.binary : undefined;
     const flat = legacy.length > 0 ? kindsOf(group, legacy) : undefined;
     return {
       mode: isMode(entry.mode) ? entry.mode : DEFAULT_MODES[group],
       kinds: explicit.length > 0 ? explicit : (flat ?? [...DEFAULT_GROUP_KINDS[group]]),
+      ...(typeof gitleaks === 'string' && gitleaks !== '' ? { gitleaks } : {}),
     };
   };
   const groups: Record<Group, GroupConfig> = {
@@ -118,6 +123,15 @@ export function resolveConfig(raw: unknown): GuardConfig {
     }
   }
   return { groups, targets };
+}
+
+function isExecutable(path: string): boolean {
+  try {
+    accessSync(path, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 interface Finding {
@@ -163,7 +177,7 @@ export async function decide(
         return undefined;
       }
       try {
-        const kind = await findPersonalData(outbound.text, kinds);
+        const kind = await findPersonalData(outbound.text, kinds, { gitleaks: config.groups[group].gitleaks });
         return kind ? { mode, group, kind } : undefined;
       } catch {
         return { mode, group, kind: undefined };
@@ -213,5 +227,12 @@ export interface HookApi {
 export function register(api: HookApi): void {
   const config = resolveConfig(api.pluginConfig);
   const log = (line: string) => api.logger?.warn(line);
+  const { secrets } = config.groups;
+  if (secrets.mode !== 'off' && secrets.kinds.includes('credential')) {
+    if (secrets.gitleaks === undefined || !isExecutable(secrets.gitleaks)) {
+      delete secrets.gitleaks;
+      log(`${PLUGIN_ID}: gitleaks skipped: groups.secrets.gitleaks.binary is unset or not an executable file; secretlint still runs`);
+    }
+  }
   api.on('before_tool_call', (event, ctx) => decide(event, ctx, config, log), { priority: 90 });
 }

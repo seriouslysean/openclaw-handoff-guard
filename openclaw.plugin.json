@@ -49,6 +49,18 @@
                   ]
                 },
                 "description": "Kinds to check. Default: matrix-token and credential."
+              },
+              "gitleaks": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Optional second detector for the credential kind: a gitleaks release binary run as a separate process. The plugin downloads nothing. Without a binary, only secretlint runs, and a warning is logged at startup.",
+                "properties": {
+                  "binary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Absolute path to a gitleaks 8.30.1 executable whose SHA-256 you have verified against the release's checksums file."
+                  }
+                }
               }
             }
           },

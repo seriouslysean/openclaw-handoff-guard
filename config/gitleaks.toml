@@ -1,0 +1,5 @@
+# Pinned for gitleaks 8.30.1 (docs/how-it-works.md). Extends the built-in rules and drops the one that flags
+# any high-entropy string next to a key-like word, which is not a fixed format (AGENTS.md rule 2).
+[extend]
+useDefault = true
+disabledRules = ["generic-api-key"]
