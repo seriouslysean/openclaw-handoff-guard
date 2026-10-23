@@ -248,7 +248,7 @@ test('the manifest id, groups, modes and kinds match the code', async () => {
   const manifest: unknown = JSON.parse(await readFile(new URL('../openclaw.plugin.json', import.meta.url), 'utf8'));
   assert.ok(typeof manifest === 'object' && manifest !== null && 'id' in manifest);
   assert.equal(manifest.id, PLUGIN_ID);
-  assert.equal(PLUGIN_ID, 'leak-guard');
+  assert.equal(PLUGIN_ID, 'handoff-guard');
   const text = JSON.stringify(manifest);
   const { KINDS } = await import('../src/detect.ts');
   assert.match(text, new RegExp(JSON.stringify(KINDS).replaceAll(/[[\]]/g, '\\$&')));

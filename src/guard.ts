@@ -2,7 +2,7 @@ import { DEFAULT_GROUP_KINDS, GROUPS, GROUP_KINDS, KINDS, KIND_NAMES, type Group
 import { accessSync, constants } from 'node:fs';
 import { outboundText } from './rules.ts';
 
-export const PLUGIN_ID = 'leak-guard';
+export const PLUGIN_ID = 'handoff-guard';
 
 /** What happens to a call whose text matches a group: block it, ask first, let it through and log, or skip the group. */
 export const MODES = ['block', 'approve', 'warn', 'off'] as const;

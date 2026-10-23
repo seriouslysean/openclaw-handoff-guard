@@ -1,6 +1,6 @@
-# openclaw-leak-guard
+# openclaw-handoff-guard
 
-An [OpenClaw](https://docs.openclaw.ai) plugin (id `leak-guard`) that stops an agent from handing known personal-data formats to another agent.
+An [OpenClaw](https://docs.openclaw.ai) plugin (id `handoff-guard`) that stops an agent from handing known personal-data formats to another agent.
 
 An agent that can't reach the web can still ask one that can: the text it sends with `sessions_send` or `sessions_spawn` can become a search query or a fetched URL. This plugin checks that text and, by default, blocks the call when it holds an email address, a phone or card number, a bank account number (IBAN), a US Social Security number, a Matrix id, a Matrix token, or a credential, and logs a warning for a US street address or a date of birth. Everything else passes, so research about people, places and topics works as before.
 
@@ -50,20 +50,20 @@ From a checkout, with runtime dependencies only:
 
 ```sh
 npm ci --omit=dev --ignore-scripts
-openclaw plugins install --link --force --accept-capabilities /path/to/openclaw-leak-guard
-openclaw plugins enable leak-guard
-openclaw plugins inspect leak-guard --runtime --json
+openclaw plugins install --link --force --accept-capabilities /path/to/openclaw-handoff-guard
+openclaw plugins enable handoff-guard
+openclaw plugins inspect handoff-guard --runtime --json
 ```
 
 - `--force` confirms a source that isn't on ClawHub; a local source always asks for capability consent (`cli/plugins/install.md:79-83`). The plugin requests no capabilities.
 - `--omit=dev` keeps OpenClaw's own SDK out of `node_modules`: the gateway maps `openclaw/plugin-sdk/*` to its own install, so a second copy can drift from the host.
 - With no config, text to every agent is checked: `secrets` and `structured-pii` block, and `contextual-pii` logs a warning. Config edits apply without a restart.
-- Choose a mode per group: `openclaw config set plugins.entries.leak-guard.config '{"groups":{"structured-pii":{"mode":"approve"}}}' --strict-json`. A group's `kinds` narrows what it checks, such as `"kinds": ["email", "ip-address"]`. An unknown group, mode or kind falls back to the group's default, so a typo never turns checking off.
+- Choose a mode per group: `openclaw config set plugins.entries.handoff-guard.config '{"groups":{"structured-pii":{"mode":"approve"}}}' --strict-json`. A group's `kinds` narrows what it checks, such as `"kinds": ["email", "ip-address"]`. An unknown group, mode or kind falls back to the group's default, so a typo never turns checking off.
 - Override a mode for one receiving agent, such as one that can't reach the web or a channel: `{"targets":{"<agent id>":{"structured-pii":"off"}}}`. The other groups stay on for it.
 - Deprecated, still accepted for one release: `allowTargets` (read as every group `off` for those ids; a `targets` entry for the same id wins) and a top-level `kinds` (split into the groups; a group with none of the listed kinds checks nothing, as before).
 - `inspect` should show the plugin as loaded, with `before_tool_call` in `typedHooks`.
 
-To turn it off, run `openclaw plugins disable leak-guard`.
+To turn it off, run `openclaw plugins disable handoff-guard`.
 
 ## gitleaks (optional)
 
@@ -71,7 +71,7 @@ A second `credential` detector: the gitleaks release binary, run as a separate p
 
 1. Get the gitleaks 8.30.1 release archive for your platform from <https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1>.
 2. Check its SHA-256 against `gitleaks_8.30.1_checksums.txt` from the same release, and unpack it.
-3. Point the plugin at the executable, by absolute path: `openclaw config set plugins.entries.leak-guard.config '{"groups":{"secrets":{"gitleaks":{"binary":"/path/to/gitleaks"}}}}' --strict-json`.
+3. Point the plugin at the executable, by absolute path: `openclaw config set plugins.entries.handoff-guard.config '{"groups":{"secrets":{"gitleaks":{"binary":"/path/to/gitleaks"}}}}' --strict-json`.
 
 | Release asset (8.30.1) | SHA-256 |
 | --- | --- |

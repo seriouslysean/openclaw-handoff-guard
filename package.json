@@ -1,5 +1,5 @@
 {
-  "name": "@seriouslysean/openclaw-leak-guard",
+  "name": "@seriouslysean/openclaw-handoff-guard",
   "version": "0.1.0",
   "private": true,
   "description": "An OpenClaw plugin that checks text an agent sends to another agent for secrets and personal data, by group, with a mode per group.",

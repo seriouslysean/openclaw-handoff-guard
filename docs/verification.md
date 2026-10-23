@@ -22,7 +22,7 @@
 - **Technical text:** 0 of 4,147 paragraphs from four repositories' Markdown and source (tests and fixtures left out) match `us-street` or `date-of-birth`. The same patterns, measured before this change on 40 synthetic addresses and 20 synthetic dates of birth, matched all of them; those samples are no longer kept, so recall is not rechecked here.
 - **Adversarial review** (read-only, before the first push): ten findings, among them an `agentId` borrowing an exemption, unchecked spawn attachments, format variants and false positives. Each one is fixed with a test, or listed as a gap in `docs/how-it-works.md`.
 - **Typecheck** against the OpenClaw 2026.10.5 plugin SDK.
-- **Loads in OpenClaw 2026.10.5:** in an isolated state directory (`OPENCLAW_STATE_DIR`), `plugins install --link --accept-capabilities` followed by `plugins inspect leak-guard --runtime --json` reports `status: loaded`, `capabilityCount: 0` and `typedHooks: [{ before_tool_call, priority 90 }]`.
+- **Loads in OpenClaw 2026.10.5:** in an isolated state directory (`OPENCLAW_STATE_DIR`), `plugins install --link --accept-capabilities` followed by `plugins inspect handoff-guard --runtime --json` reports `status: loaded`, `capabilityCount: 0` and `typedHooks: [{ before_tool_call, priority 90 }]`.
 - **Runtime dependencies alone** (`npm ci --omit=dev`): a check runs in about 10 ms on the first call and about 2 ms on 1,750 characters after that, on Apple silicon.
 
 ## Not yet checked on a live gateway
@@ -40,6 +40,6 @@
 
 ## Checking it on your gateway
 
-1. Run `openclaw plugins inspect leak-guard --runtime --json`. The plugin should be loaded, with `before_tool_call` in `typedHooks`.
+1. Run `openclaw plugins inspect handoff-guard --runtime --json`. The plugin should be loaded, with `before_tool_call` in `typedHooks`.
 2. Ask an agent to send another agent a message containing an address on the reserved `example.org` domain. Expect the block message, naming an email address and not the address itself.
 3. Ask it to send the same agent a message with none of the kinds. Expect it to arrive.

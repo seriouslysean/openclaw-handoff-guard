@@ -64,7 +64,7 @@ test('the scan catches each shape it claims to', () => {
   }
   assert.deepEqual(findLeaks(['bot', '@', 'users.noreply.github.com'].join('')), []);
   assert.deepEqual(findLeaks('someone@example.org, @someone:example.org, x@host.invalid, x@mail.example.com'), []);
-  assert.deepEqual(findLeaks('https://docs.openclaw.ai/plugins and plugins.entries.leak-guard.config'), []);
+  assert.deepEqual(findLeaks('https://docs.openclaw.ai/plugins and plugins.entries.handoff-guard.config'), []);
 });
 
 test('no file in the repository identifies a setup', async () => {

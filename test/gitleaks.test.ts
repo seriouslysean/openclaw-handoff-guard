@@ -28,7 +28,7 @@ exit 0
 let dir = '';
 let fake = '';
 before(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'leak-guard-'));
+  dir = await mkdtemp(join(tmpdir(), 'handoff-guard-'));
   fake = join(dir, 'gitleaks');
   await writeFile(fake, FAKE);
   await chmod(fake, 0o755);
@@ -88,7 +88,7 @@ test('a gitleaks failure follows the group mode and the block reason never holds
   assert.equal(await decide(failing, {}, config('off')), undefined);
   const logs: string[] = [];
   assert.equal(await decide(failing, {}, config('warn'), (line) => logs.push(line)), undefined);
-  assert.deepEqual(logs, ['leak-guard: warn: secrets check failed in text for helper']);
+  assert.deepEqual(logs, ['handoff-guard: warn: secrets check failed in text for helper']);
 });
 
 test('a gitleaks finding blocks naming the group and kind only', async () => {

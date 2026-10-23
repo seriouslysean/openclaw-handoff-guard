@@ -1,6 +1,6 @@
 {
-  "id": "leak-guard",
-  "name": "Leak Guard",
+  "id": "handoff-guard",
+  "name": "Handoff Guard",
   "description": "Checks text an agent sends to another agent for secrets and personal data, by group (secrets, structured-pii, contextual-pii), with a mode per group: block, approve, warn or off. Deterministic; blocks text it can't read.",
   "activation": {
     "onStartup": true
