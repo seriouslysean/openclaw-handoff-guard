@@ -46,15 +46,22 @@ Kinds are listed below. Every text field of the call is checked: the message or 
 
 ## Install
 
-From a checkout, with runtime dependencies only:
+From a release tag:
 
 ```sh
-npm ci --omit=dev --ignore-scripts
-openclaw plugins install --link --force --accept-capabilities /path/to/openclaw-handoff-guard
+openclaw plugins install git:github.com/seriouslysean/openclaw-handoff-guard@<tag> --force --accept-capabilities
 openclaw plugins enable handoff-guard
 openclaw plugins inspect handoff-guard --runtime --json
 ```
 
+Or from a checkout, with runtime dependencies only:
+
+```sh
+npm ci --omit=dev --ignore-scripts
+openclaw plugins install --link --force --accept-capabilities /path/to/openclaw-handoff-guard
+```
+
+- A git install runs npm with `--ignore-scripts` and `--omit=dev`, so nothing is built at install time (`cli/plugins/install.md`, 2026.10.5); it loads the committed `dist/` through `openclaw.runtimeExtensions`. A `--link` install loads `src/` directly.
 - `--force` confirms a source that isn't on ClawHub; a local source always asks for capability consent (`cli/plugins/install.md:79-83`). The plugin requests no capabilities.
 - `--omit=dev` keeps OpenClaw's own SDK out of `node_modules`: the gateway maps `openclaw/plugin-sdk/*` to its own install, so a second copy can drift from the host.
 - With no config, text to every agent is checked: `secrets` and `structured-pii` block, and `contextual-pii` logs a warning. Config edits apply without a restart.
@@ -100,7 +107,10 @@ Requires Node 24.16 or later.
 ```sh
 npm ci --ignore-scripts
 npm run lint && npm run typecheck && npm test
+npm run build
 ```
+
+Commit `dist/` with any change to `src/`; CI fails when it doesn't match a fresh build.
 
 Run the checks in a separate clone from the one you've installed with `--link`, or reinstall with `--omit=dev` afterwards.
 

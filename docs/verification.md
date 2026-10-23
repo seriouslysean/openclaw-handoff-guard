@@ -23,6 +23,7 @@
 - **Adversarial review** (read-only, before the first push): ten findings, among them an `agentId` borrowing an exemption, unchecked spawn attachments, format variants and false positives. Each one is fixed with a test, or listed as a gap in `docs/how-it-works.md`.
 - **Typecheck** against the OpenClaw 2026.10.5 plugin SDK.
 - **Loads in OpenClaw 2026.10.5:** in an isolated state directory (`OPENCLAW_STATE_DIR`), `plugins install --link --accept-capabilities` followed by `plugins inspect handoff-guard --runtime --json` reports `status: loaded`, `capabilityCount: 0` and `typedHooks: [{ before_tool_call, priority 90 }]`.
+- **Git install in OpenClaw 2026.10.5:** in an isolated state directory, `plugins install git:file://<checkout>@<commit> --force --accept-capabilities` installs, and `plugins inspect handoff-guard --runtime --json` reports `status: loaded` from `dist/index.js` with `typedHooks: [{ before_tool_call, priority 90 }]`. Before `dist/` was committed, the same install from `v0.1.0` failed: "requires compiled runtime output for TypeScript entry ./src/index.ts".
 - **Runtime dependencies alone** (`npm ci --omit=dev`): a check runs in about 10 ms on the first call and about 2 ms on 1,750 characters after that, on Apple silicon.
 
 ## Not yet checked on a live gateway
