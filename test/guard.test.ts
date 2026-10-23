@@ -7,7 +7,8 @@ import { type HookApi, MODES, PLUGIN_ID, UNREADABLE_REASON, decide, register, re
 const email = { toolName: 'sessions_send', params: { agentId: 'helper', message: 'mail someone@example.org' } };
 
 const SECRETS_DEFAULT = ['matrix-token', 'credential'];
-const STRUCTURED_DEFAULT = DEFAULT_KINDS.filter((kind) => !SECRETS_DEFAULT.includes(kind));
+const CONTEXTUAL_DEFAULT = ['us-street', 'date-of-birth'];
+const STRUCTURED_DEFAULT = DEFAULT_KINDS.filter((kind) => !SECRETS_DEFAULT.includes(kind) && !CONTEXTUAL_DEFAULT.includes(kind));
 const credentialText = ['gh', 'p_', 'a'.repeat(36)].join('');
 const credential = { toolName: 'sessions_send', params: { agentId: 'helper', message: `token ${credentialText}` } };
 const matrixToken = ['syt', 'Y2FkZGVybHk', 'GuenhwyvarIcingdaleS', '066Dhg'].join('_');
@@ -21,7 +22,7 @@ test('with no config, secrets and structured-pii block, contextual-pii warns, an
     groups: {
       secrets: { mode: 'block', kinds: SECRETS_DEFAULT },
       'structured-pii': { mode: 'block', kinds: STRUCTURED_DEFAULT },
-      'contextual-pii': { mode: 'warn', kinds: [] },
+      'contextual-pii': { mode: 'warn', kinds: CONTEXTUAL_DEFAULT },
     },
     targets: {},
   };
@@ -143,6 +144,22 @@ test('warn mode lets the call through and logs the group and kind, never the val
   assert.match(lines[0] ?? '', /structured-pii/);
   assert.match(lines[0] ?? '', /email/);
   assert.doesNotMatch(lines[0] ?? '', /example\.org/);
+});
+
+test('a street address or a date of birth warns by default through contextual-pii, and blocks when asked', async () => {
+  const street = { toolName: 'sessions_send', params: { agentId: 'helper', message: 'Danica lives at 12 Mithral Hall Lane' } };
+  const born = { toolName: 'sessions_send', params: { agentId: 'helper', message: 'Cadderly was born 03/14/1990' } };
+  const lines: string[] = [];
+  assert.equal(await decide(street, main, resolveConfig({}), (line) => lines.push(line)), undefined);
+  assert.equal(await decide(born, main, resolveConfig({}), (line) => lines.push(line)), undefined);
+  assert.equal(lines.length, 2);
+  assert.match(lines[0] ?? '', /contextual-pii/);
+  assert.match(lines[0] ?? '', /us-street/);
+  assert.match(lines[1] ?? '', /date-of-birth/);
+  assert.doesNotMatch(lines.join('\n'), /Mithral|1990/);
+  const result = await decide(born, main, resolveConfig({ groups: { 'contextual-pii': { mode: 'block' } } }));
+  assert.ok(result && 'block' in result);
+  assert.match(result.blockReason, /date of birth/);
 });
 
 test('off mode does not run the group', async () => {

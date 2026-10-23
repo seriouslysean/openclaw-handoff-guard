@@ -2,7 +2,7 @@
 
 An [OpenClaw](https://docs.openclaw.ai) plugin (id `leak-guard`) that stops an agent from handing known personal-data formats to another agent.
 
-An agent that can't reach the web can still ask one that can: the text it sends with `sessions_send` or `sessions_spawn` can become a search query or a fetched URL. This plugin checks that text and, by default, blocks the call when it holds an email address, a phone or card number, a bank account number (IBAN), a US Social Security number, a Matrix id, a Matrix token, or a credential. Everything else passes, so research about people, places and topics works as before.
+An agent that can't reach the web can still ask one that can: the text it sends with `sessions_send` or `sessions_spawn` can become a search query or a fetched URL. This plugin checks that text and, by default, blocks the call when it holds an email address, a phone or card number, a bank account number (IBAN), a US Social Security number, a Matrix id, a Matrix token, or a credential, and logs a warning for a US street address or a date of birth. Everything else passes, so research about people, places and topics works as before.
 
 **Status:** experimental. Built and tested against OpenClaw 2026.10.5. Not published on ClawHub or npm; install it from source. What has and hasn't been checked on a live gateway is in [docs/verification.md](docs/verification.md).
 
@@ -12,7 +12,7 @@ An agent that can't reach the web can still ask one that can: the text it sends 
 | --- | --- | --- |
 | `secrets` | `matrix-token`, `credential` | `block` |
 | `structured-pii` | `email`, `phone-number`, `credit-card-number`, `iban`, `matrix-id`, `us-ssn`, `us-itin`, `us-bank-account`, `us-passport`, `us-driver-license`; `ip-address` on request | `block` |
-| `contextual-pii` | none yet | `warn` |
+| `contextual-pii` | `us-street`, `date-of-birth` | `warn` |
 
 | Mode | What happens to a call whose text matches |
 | --- | --- |
@@ -39,6 +39,8 @@ Tool "openclaw:core:sessions_send" was blocked before execution: Blocked: this t
 | `iban` | candidates checked by [ibantools](https://github.com/Simplify/ibantools) (country format and checksum) |
 | `matrix-id` | a pattern for user, room and alias ids |
 | `ip-address` | @arcjet/redact; off by default, since public addresses are routine in research |
+| `us-street` (`contextual-pii`) | a house number, one to three capitalised words and a USPS Publication 28 (appendix C1) street suffix; a heuristic, no standard |
+| `date-of-birth` (`contextual-pii`) | [Presidio](https://github.com/microsoft/presidio)'s date formats with one of Macie's date-of-birth keywords, or `born`, within 30 characters |
 
 Kinds are listed below. Every text field of the call is checked: the message or task, a spawn's label, attachments (base64 ones decoded) and output schema, and any field it doesn't know. Zero-width characters are removed and full-width digits folded first. The matched value is never repeated in the block reason, which reaches the transcript and the logs. Text it can't read is blocked. Details and known gaps are in [docs/how-it-works.md](docs/how-it-works.md).
 
@@ -55,7 +57,7 @@ openclaw plugins inspect leak-guard --runtime --json
 
 - `--force` confirms a source that isn't on ClawHub; a local source always asks for capability consent (`cli/plugins/install.md:79-83`). The plugin requests no capabilities.
 - `--omit=dev` keeps OpenClaw's own SDK out of `node_modules`: the gateway maps `openclaw/plugin-sdk/*` to its own install, so a second copy can drift from the host.
-- With no config, text to every agent is checked: `secrets` and `structured-pii` block, and `contextual-pii` has no kinds yet. Config edits apply without a restart.
+- With no config, text to every agent is checked: `secrets` and `structured-pii` block, and `contextual-pii` logs a warning. Config edits apply without a restart.
 - Choose a mode per group: `openclaw config set plugins.entries.leak-guard.config '{"groups":{"structured-pii":{"mode":"approve"}}}' --strict-json`. A group's `kinds` narrows what it checks, such as `"kinds": ["email", "ip-address"]`. An unknown group, mode or kind falls back to the group's default, so a typo never turns checking off.
 - Override a mode for one receiving agent, such as one that can't reach the web or a channel: `{"targets":{"<agent id>":{"structured-pii":"off"}}}`. The other groups stay on for it.
 - Deprecated, still accepted for one release: `allowTargets` (read as every group `off` for those ids; a `targets` entry for the same id wins) and a top-level `kinds` (split into the groups; a group with none of the listed kinds checks nothing, as before).

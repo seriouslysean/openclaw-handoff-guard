@@ -71,6 +71,15 @@ const FOUND: [string, string][] = [
   // The localpart's + and / as a URL or a JSON encoder writes them.
   ['matrix-token', `/sync?access_token=${['syt', 'Y2F0dGl%2BYnJpZT8%2B', 'AegisFangKelvinsCair', '2IX3Iq'].join('_')}`],
   ['matrix-token', `{"refresh_token":"${['syr', 'cGlrZWw\\/Pw', 'OghmaBlessedTheGreen', '4WMzhi'].join('_')}"}`],
+  // contextual-pii: a USPS-suffixed street, and a date beside a birth keyword before or after it.
+  ['us-street', 'Danica lives at 12 Mithral Hall Lane'],
+  ['us-street', 'meet at 4410 N. Spirit Soarer Ave. at noon'],
+  ['us-street', 'the shop on 7 Larch St'],
+  ['date-of-birth', 'Cadderly was born 03/14/1990'],
+  ['date-of-birth', 'Bruenor, born March 3rd, 1952, in the hall'],
+  ['date-of-birth', 'DOB: 1987-06-21'],
+  ['date-of-birth', '"date_of_birth": "21 Jun 1987"'],
+  ['date-of-birth', '1987-06-21 is her birthday'],
 ];
 
 for (const [kind, text] of FOUND) {
@@ -112,6 +121,12 @@ const RESEARCH = [
   'social security trustees report for 2026',
   // The original and the folded text are checked apart, so a keyword at the end of one can't name a number in the other.
   `123456789 is the build number${' '.repeat(40)}ａ the ssn`,
+  // contextual-pii: a number before lowercase words or no suffix, a date with no birth keyword, a year after "born".
+  'there are 3 more ways to do it, and 2 main streets',
+  'see section 4 Main Results and 12 Larchmont, Fenmouth',
+  'released 2026-10-21 and patched 10/22/2026',
+  'Rust was born in 2006 at Mozilla',
+  'the birthday paradox needs 23 people',
 ];
 
 for (const text of RESEARCH) {
