@@ -30,12 +30,12 @@ export const GROUP_KINDS: Record<Group, readonly Kind[]> = {
   'contextual-pii': [],
 };
 
-/** Public IP addresses are routine in research about networks and services, so they pass unless configured. */
 export const DEFAULT_GROUP_KINDS: Record<Group, readonly Kind[]> = {
   ...GROUP_KINDS,
   'structured-pii': GROUP_KINDS['structured-pii'].filter((kind) => kind !== 'ip-address'),
 };
 
+/** Public IP addresses are routine in research about networks and services, so they pass unless configured. */
 export const DEFAULT_KINDS: readonly Kind[] = KINDS.filter((kind) => kind !== 'ip-address');
 
 export const KIND_NAMES: Record<Kind, string> = {
