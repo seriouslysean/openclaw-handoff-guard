@@ -16,8 +16,10 @@
   - unreadable agent text, blocked;
   - a block reason that never echoes the value;
   - gitleaks through a fake executable (finding, no finding, exit 1, unreadable report, timeout, stdin-only text, the flags and the pinned config), its failure following each group mode, and the skipped-with-one-warning startup;
+  - `us-street` and `date-of-birth` found, warning by default and blocking when the group is set to `block`, and passing on prose numbers, suffix-less addresses, dates with no birth keyword and a year alone after `born`;
   - the leak scan.
 - **gitleaks 8.30.1 against the real binary** (`test/gitleaks.test.ts`, runs only when `gitleaks` on `PATH`, or `GITLEAKS_BIN`, reports 8.30.1): a provider token is found, also with a `gitleaks:allow` comment; plain text and a generic `api_key = "…"` pass.
+- **Technical text:** 0 of 4,147 paragraphs from four repositories' Markdown and source (tests and fixtures left out) match `us-street` or `date-of-birth`. The same patterns, measured before this change on 40 synthetic addresses and 20 synthetic dates of birth, matched all of them; those samples are no longer kept, so recall is not rechecked here.
 - **Adversarial review** (read-only, before the first push): ten findings, among them an `agentId` borrowing an exemption, unchecked spawn attachments, format variants and false positives. Each one is fixed with a test, or listed as a gap in `docs/how-it-works.md`.
 - **Typecheck** against the OpenClaw 2026.10.5 plugin SDK.
 - **Loads in OpenClaw 2026.10.5:** in an isolated state directory (`OPENCLAW_STATE_DIR`), `plugins install --link --accept-capabilities` followed by `plugins inspect leak-guard --runtime --json` reports `status: loaded`, `capabilityCount: 0` and `typedHooks: [{ before_tool_call, priority 90 }]`.

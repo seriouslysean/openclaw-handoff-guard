@@ -45,7 +45,9 @@
                     "iban",
                     "matrix-id",
                     "matrix-token",
-                    "credential"
+                    "credential",
+                    "us-street",
+                    "date-of-birth"
                   ]
                 },
                 "description": "Kinds to check. Default: matrix-token and credential."
@@ -95,7 +97,9 @@
                     "iban",
                     "matrix-id",
                     "matrix-token",
-                    "credential"
+                    "credential",
+                    "us-street",
+                    "date-of-birth"
                   ]
                 },
                 "description": "Kinds to check. Default: every structured-pii kind but ip-address."
@@ -133,10 +137,12 @@
                     "iban",
                     "matrix-id",
                     "matrix-token",
-                    "credential"
+                    "credential",
+                    "us-street",
+                    "date-of-birth"
                   ]
                 },
-                "description": "Kinds to check. None exist yet."
+                "description": "Kinds to check. Default: us-street and date-of-birth."
               }
             }
           }
@@ -208,7 +214,9 @@
             "iban",
             "matrix-id",
             "matrix-token",
-            "credential"
+            "credential",
+            "us-street",
+            "date-of-birth"
           ]
         },
         "description": "Deprecated: use groups.<group>.kinds. The kinds to check, split into their groups."

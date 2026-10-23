@@ -19,6 +19,8 @@ export const KINDS = [
   'matrix-id',
   'matrix-token',
   'credential',
+  'us-street',
+  'date-of-birth',
 ] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -26,11 +28,14 @@ export type Kind = (typeof KINDS)[number];
 export const GROUPS = ['secrets', 'structured-pii', 'contextual-pii'] as const;
 export type Group = (typeof GROUPS)[number];
 
-/** `contextual-pii` has no kinds yet: deterministic context patterns are added to it later. */
+const SECRETS: readonly Kind[] = ['matrix-token', 'credential'];
+/** Context patterns: a shape that is personal data only with the words around it, so they start in `warn`. */
+const CONTEXTUAL: readonly Kind[] = ['us-street', 'date-of-birth'];
+
 export const GROUP_KINDS: Record<Group, readonly Kind[]> = {
-  secrets: ['matrix-token', 'credential'],
-  'structured-pii': KINDS.filter((kind) => kind !== 'matrix-token' && kind !== 'credential'),
-  'contextual-pii': [],
+  secrets: SECRETS,
+  'structured-pii': KINDS.filter((kind) => !SECRETS.includes(kind) && !CONTEXTUAL.includes(kind)),
+  'contextual-pii': CONTEXTUAL,
 };
 
 export const DEFAULT_GROUP_KINDS: Record<Group, readonly Kind[]> = {
@@ -55,6 +60,8 @@ export const KIND_NAMES: Record<Kind, string> = {
   'matrix-id': 'a Matrix user, room or alias id',
   'matrix-token': 'a Matrix access, refresh or login token',
   credential: 'a credential or token',
+  'us-street': 'a US street address',
+  'date-of-birth': 'a date of birth',
 };
 
 type ArcjetKind = 'email' | 'phone-number' | 'credit-card-number' | 'ip-address';
@@ -105,6 +112,24 @@ function named(pattern: string, keywords: readonly string[], minLength = 0): (te
       );
     });
 }
+
+/**
+ * Presidio's date formats (DateRecognizer at 4f0e236): ISO, day-month and month-day with a 2- or 4-digit year, and a
+ * month name with a day and year. A date alone is routine; it counts only beside a birth keyword (below).
+ */
+const DATE = String.raw`\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[/.-]\d{1,2}[/.-](?:\d{4}|\d{2})|\d{4}/\d{1,2}/\d{1,2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}`;
+
+/** USPS Publication 28, appendix C1: common street suffixes and their standard abbreviations. */
+const STREET_SUFFIX =
+  'Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Place|Pl|Way|Terrace|Ter|Circle|Cir|Parkway|Pkwy|Highway|Hwy|Trail|Trl|Square|Sq';
+
+/**
+ * A house number, an optional compass point, one to three capitalised words and a USPS suffix ("12 Larch Lane"). No
+ * standard defines this; it is a heuristic, case-sensitive so prose ("3 more ways") passes.
+ */
+const US_STREET = new RegExp(
+  String.raw`\b\d{1,6}\s+(?:[NSEW]\.?\s+)?(?:[A-Z][a-z]+\s+){1,3}(?:${STREET_SUFFIX})\b`,
+);
 
 /**
  * Keyword lists are Macie's managed data identifiers for the US; patterns are Presidio's US recognizers, the bank
@@ -173,6 +198,8 @@ const NAMED: readonly [Kind, (text: string) => boolean][] = [
       5,
     ),
   ],
+  // Macie's DATE_OF_BIRTH keywords, plus "born": Macie's list has no verb form, and it is how a birth date is usually said.
+  ['date-of-birth', named(DATE, ['bday', 'b-day', 'birth date', 'birthday', 'date of birth', 'dob', 'born'])],
 ];
 
 /** A sigil, a localpart and a server name with a dot (Matrix specification, appendix "Common Identifier Format"). */
@@ -350,6 +377,9 @@ export async function findPersonalData(
   }
   if (wanted.has('matrix-token') && hasMatrixToken(text)) {
     found.add('matrix-token');
+  }
+  if (wanted.has('us-street') && US_STREET.test(text)) {
+    found.add('us-street');
   }
   if (wanted.has('credential') && (await hasCredential(text, options.gitleaks))) {
     found.add('credential');
