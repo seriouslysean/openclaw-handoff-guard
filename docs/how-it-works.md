@@ -4,7 +4,18 @@ Checked against OpenClaw 2026.10.5.
 
 ## The hook
 
-The plugin registers one asynchronous `before_tool_call` handler at priority 90 (`plugins/hooks/tool-policy.md`). For a call it blocks, it returns `{ block: true, blockReason }`, which is terminal. OpenClaw blocks the call when a `before_tool_call` handler throws or exceeds its timeout, 15 seconds by default (`plugins/hooks/reference.md`, "On thrown error or timeout"), so a detector that fails blocks rather than passes. A check takes milliseconds.
+The plugin registers one asynchronous `before_tool_call` handler at priority 90 (`plugins/hooks/tool-policy.md`). The result depends on the mode of the group that matched:
+
+| Mode | Hook result |
+| --- | --- |
+| `block` | `{ block: true, blockReason }`, which is terminal |
+| `approve` | `requireApproval` with `allowedDecisions: ["allow-once", "deny"]` and a 120 s timeout; the run pauses, and a timeout, a cancellation or no approval route blocks the call (`plugins/plugin-permission-requests.md`, "Decision behavior") |
+| `warn` | no result; the group and kind go to `api.logger.warn` (`plugins/sdk-runtime.md`) |
+| `off` | the group is not run |
+
+The groups run in the order `secrets`, `structured-pii`, `contextual-pii`, and the strictest result wins: block, then approve. Unreadable parameters block before any group runs, whatever the modes are. A detector that throws is a finding in its group's mode: `block` blocks, `approve` asks, `warn` logs, `off` never ran it. OpenClaw blocks the call when the handler itself throws or exceeds its timeout, 15 seconds by default (`plugins/hooks/reference.md`, "On thrown error or timeout"). A check takes milliseconds.
+
+Block reasons, approval texts and log lines name the group and kind and never the matched value.
 
 ## Which calls carry agent text
 
@@ -19,13 +30,15 @@ Every string in the parameters is checked, nested or not, except the fields that
 
 `message` posts to a channel and reaches people, not agents (`concepts/session-tool.md`), so it is out of scope. A spawn with `context: "fork"` copies the requester's transcript to the child, but every native fork must target the requester's own agent (`tool-reference.md`, `context`), so a fork never reaches another agent.
 
-## Exemptions
+## Per-target overrides
 
-`allowTargets` lists agents whose incoming text isn't checked. Only a known id matches: a call whose target is a label, an unmapped session or a spawn with no requester id is checked, since OpenClaw documents missing context as unproven (`plugins/hooks/tool-policy.md`).
+`targets` sets a mode per group for one receiving agent, replacing the group's own mode, so an agent can be exempt from `structured-pii` while `secrets` stays on. The deprecated `allowTargets` is read as every group `off` for the listed ids, and a `targets` entry for the same id wins. Only a known id matches: a call whose target is a label, an unmapped session or a spawn with no requester id is checked, since OpenClaw documents missing context as unproven (`plugins/hooks/tool-policy.md`).
 
-## Kinds
+## Groups and kinds
 
-Each kind is a fixed format, so the same text gives the same verdict on every run. The first kind found, in the order of the table in the README, names the block. Before matching, format characters (`\p{Cf}`, such as zero-width spaces) are removed and the text is folded with NFKC, so full-width digits read as digits; both the original and the folded text are checked.
+`secrets` holds `credential`. `structured-pii` holds every other kind; `ip-address` is in the group but not in its default kinds. `contextual-pii` is empty: its context patterns come later, and with no kinds it checks nothing in any mode.
+
+Each kind is a fixed format, so the same text gives the same verdict on every run. Within a group, the first kind found, in the order of the table in the README, names the match. Before matching, format characters (`\p{Cf}`, such as zero-width spaces) are removed and the text is folded with NFKC, so full-width digits read as digits; both the original and the folded text are checked.
 
 - **email, phone-number, credit-card-number, ip-address:** `@arcjet/redact`, which runs locally in WebAssembly. The guard uses only its detection, through the `replace` callback, and never its redacted output. ISSNs (`NNNN-NNNC`) are masked for this pass, since the phone detector reads them as numbers. Two of its matches are dropped: an email address whose domain has no dot or starts with one (`unit@.service`, `name@localhost`, `plugin@marketplace`), since SMTP takes only fully qualified domains, and a phone number that is a slash date (`08/29`, `03/14/1990`). An address with a dot in its domain still blocks, including `unit@name.test`.
 - **us-ssn:** `NNN-NN-NNNN` with hyphens, spaces or dots (the same one twice), excluding area 000, 666 and 900–999, group 00 and serial 0000, which are never issued. Nine digits with no separator count only with a keyword near them (below), since too many ordinary numbers look like that. It is checked before phone numbers so the block names it.
