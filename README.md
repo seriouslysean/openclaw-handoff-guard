@@ -2,7 +2,7 @@
 
 An [OpenClaw](https://docs.openclaw.ai) plugin (id `pii-guard`) that stops an agent from handing known personal-data formats to another agent.
 
-An agent that can't reach the web can still ask one that can: the text it sends with `sessions_send` or `sessions_spawn` can become a search query or a fetched URL. This plugin checks that text and, by default, blocks the call when it holds an email address, a phone or card number, a bank account number (IBAN), a US Social Security number, a Matrix id, or a credential. Everything else passes, so research about people, places and topics works as before.
+An agent that can't reach the web can still ask one that can: the text it sends with `sessions_send` or `sessions_spawn` can become a search query or a fetched URL. This plugin checks that text and, by default, blocks the call when it holds an email address, a phone or card number, a bank account number (IBAN), a US Social Security number, a Matrix id, a Matrix token, or a credential. Everything else passes, so research about people, places and topics works as before.
 
 **Status:** experimental. Built and tested against OpenClaw 2026.10.5. Not published on ClawHub or npm; install it from source. What has and hasn't been checked on a live gateway is in [docs/verification.md](docs/verification.md).
 
@@ -10,7 +10,7 @@ An agent that can't reach the web can still ask one that can: the text it sends 
 
 | Group | Kinds | Default mode |
 | --- | --- | --- |
-| `secrets` | `credential` | `block` |
+| `secrets` | `matrix-token`, `credential` | `block` |
 | `structured-pii` | `email`, `phone-number`, `credit-card-number`, `iban`, `matrix-id`, `us-ssn`, `us-itin`, `us-bank-account`, `us-passport`, `us-driver-license`; `ip-address` on request | `block` |
 | `contextual-pii` | none yet | `warn` |
 
@@ -34,6 +34,7 @@ Tool "openclaw:core:sessions_send" was blocked before execution: Blocked: this t
 | `email`, `phone-number`, `credit-card-number` | [@arcjet/redact](https://github.com/arcjet/arcjet-js/tree/main/redact) (local, WebAssembly) |
 | `us-ssn` | a pattern excluding numbers never issued; nine digits in a row only with a keyword such as "SSN" near them |
 | `us-itin`, `us-bank-account`, `us-passport`, `us-driver-license` | [Presidio](https://github.com/microsoft/presidio)'s US patterns, each needing one of [Amazon Macie](https://docs.aws.amazon.com/macie/latest/user/managed-data-identifiers.html)'s keywords within 30 characters (a separated ITIN needs none) |
+| `matrix-token` (`secrets`) | Matrix access, refresh and login tokens from Synapse and the Matrix Authentication Service, recognised by their CRC-32 checksum; a wrong checksum passes |
 | `credential` (`secrets`) | [secretlint](https://github.com/secretlint/secretlint)'s recommended preset (provider tokens, private keys, basic-auth and database connection URLs), plus JSON Web Tokens and bearer headers |
 | `iban` | candidates checked by [ibantools](https://github.com/Simplify/ibantools) (country format and checksum) |
 | `matrix-id` | a pattern for user, room and alias ids |

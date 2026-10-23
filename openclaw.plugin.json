@@ -44,10 +44,11 @@
                     "ip-address",
                     "iban",
                     "matrix-id",
+                    "matrix-token",
                     "credential"
                   ]
                 },
-                "description": "Kinds to check. Default: credential."
+                "description": "Kinds to check. Default: matrix-token and credential."
               }
             }
           },
@@ -81,6 +82,7 @@
                     "ip-address",
                     "iban",
                     "matrix-id",
+                    "matrix-token",
                     "credential"
                   ]
                 },
@@ -118,6 +120,7 @@
                     "ip-address",
                     "iban",
                     "matrix-id",
+                    "matrix-token",
                     "credential"
                   ]
                 },
@@ -192,6 +195,7 @@
             "ip-address",
             "iban",
             "matrix-id",
+            "matrix-token",
             "credential"
           ]
         },

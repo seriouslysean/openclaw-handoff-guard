@@ -5,7 +5,8 @@
 - **Unit tests** (`npm test`) cover:
   - each kind found in a synthetic sample, including separator, case, line-break, zero-width and full-width variants;
   - research text that must pass (versions, ISBN-13s, ISSNs, DOIs, ports, prices, dates and slash dates, dice notation, ratios, bare prefixes, and addresses whose domain has no dot or starts with one);
-  - IBANs with a wrong check digit and SSNs that are never issued, both passing;
+  - IBANs with a wrong check digit, Matrix token shapes with a wrong checksum and SSNs that are never issued, all passing;
+  - a Matrix token blocked by default through `secrets` and passing with `secrets` off;
   - keyword-named US identifiers found with a keyword before or after, in a JSON key, with `_` or `-` for a space, with a plural or a dropped dot in the keyword, after a URL-escaped or JSON-escaped separator and as an ITIN labelled SSN, and passing with a word that only contains a keyword (`itinerary`), a keyword over 30 characters away (also across the original and folded text), `AWS account` and license class codes;
   - the receiving agent for each call shape in OpenClaw's own order, and per-target overrides that match only a known id;
   - each mode's result (block, approve with `allow-once` and `deny` only, warn logging the kind and not the value, off), the strictest result winning, a detector failure following its group's mode, unreadable text blocking with every group off, and the fallbacks for an unknown group, mode or kind;

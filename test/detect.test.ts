@@ -57,6 +57,20 @@ const FOUND: [string, string][] = [
   ['us-itin', 'i.t.i.n 912901234'],
   ['us-itin', "Catti-brie's SSN: 912901234"],
   ['credit-card-number', 'checking account 4111111111111111'],
+  // Matrix access, refresh and login tokens from Synapse and the Matrix Authentication Service.
+  ['matrix-token', `access_token: ${['syt', 'Y2FkZGVybHk', 'GuenhwyvarIcingdaleS', '066Dhg'].join('_')}`],
+  ['matrix-token', `refresh ${['syr', 'Y2FkZGVybHk', 'SpiritSoarerTarrasqu', '0LDVpr'].join('_')}`],
+  ['matrix-token', `login ${['syl', 'MithralHallKeeperOfT', '2lR6bn'].join('_')}`],
+  ['matrix-token', `Bearer ${['mat', 'Cadderly0Bonaduce1Danica2Maupo', 'Gg6MY1'].join('_')}`],
+  ['matrix-token', `"${['mar', 'Bruenor0Battlehammer1Wulfgar23', '0x1797'].join('_')}"`],
+  ['matrix-token', `client ${['mct', 'Drizzt0DoUrden1Guenhwyvar2Ivan', 'cFDzk2'].join('_')}`],
+  ['matrix-token', `client refresh ${['mcr', 'Drizzt0DoUrden1Guenhwyvar2Ivan', '7uN964'].join('_')}`],
+  ['matrix-token', `personal ${['mpt', 'Drizzt0DoUrden1Guenhwyvar2Ivan', '05vq0N'].join('_')}`],
+  ['matrix-token', `user token ${['syt', 'Y2F0dGl+YnJpZT8+', 'AegisFangKelvinsCair', '2IX3Iq'].join('_')}`],
+  ['matrix-token', `user refresh ${['syr', 'cGlrZWw/Pw', 'OghmaBlessedTheGreen', '4WMzhi'].join('_')}`],
+  // The localpart's + and / as a URL or a JSON encoder writes them.
+  ['matrix-token', `/sync?access_token=${['syt', 'Y2F0dGl%2BYnJpZT8%2B', 'AegisFangKelvinsCair', '2IX3Iq'].join('_')}`],
+  ['matrix-token', `{"refresh_token":"${['syr', 'cGlrZWw\\/Pw', 'OghmaBlessedTheGreen', '4WMzhi'].join('_')}"}`],
 ];
 
 for (const [kind, text] of FOUND) {
@@ -119,6 +133,16 @@ test('a kind left out is not looked for', async () => {
 
 test('an IBAN with a wrong check digit passes', async () => {
   assert.equal(await findPersonalData('GB83 WEST 1234 5698 7654 32', ['iban']), undefined);
+});
+
+test('a Matrix token shape with a wrong checksum passes', async () => {
+  for (const text of [
+    ['syt', 'Y2FkZGVybHk', 'GuenhwyvarIcingdaleS', '066Dhh'].join('_'),
+    ['mat', 'Cadderly0Bonaduce1Danica2Maupo', '1YM6gG'].join('_'),
+    'the format is syt_<localpart>_<random>_<crc>',
+  ]) {
+    assert.equal(await findPersonalData(text, ['matrix-token']), undefined, text);
+  }
 });
 
 test('an SSN that is never issued passes', async () => {

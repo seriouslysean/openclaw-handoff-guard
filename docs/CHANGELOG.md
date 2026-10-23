@@ -5,6 +5,7 @@
 - Renamed from `pii-guard` to `leak-guard`: plugin id `leak-guard`, config at `plugins.entries.leak-guard.config`. Re-enable under the new id.
 - Three groups, `secrets`, `structured-pii` and `contextual-pii`, each with a mode: `block`, `approve`, `warn` or `off`. Defaults: `secrets` and `structured-pii` block, `contextual-pii` warns. `contextual-pii` has no kinds yet. No new detector.
 - `targets` sets a mode per group for one receiving agent. `allowTargets` and a top-level `kinds` still work and are deprecated; they go in the next release.
+- New kind `matrix-token` in `secrets`: Matrix access, refresh and login tokens from Synapse and the Matrix Authentication Service, matched by their checksum. It is in the default kinds of `secrets`.
 - A detector that fails follows its group's mode; unreadable text always blocks.
 
 First version, built and tested against OpenClaw 2026.10.5.

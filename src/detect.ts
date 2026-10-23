@@ -1,6 +1,7 @@
 import { redact } from '@arcjet/redact';
 import { createEngine } from '@secretlint/node';
 import { electronicFormatIBAN, isValidIBAN } from 'ibantools';
+import { crc32 } from 'node:zlib';
 
 /** Every kind the guard can recognise. Each is a fixed format, so a match is the same on every run. */
 export const KINDS = [
@@ -15,6 +16,7 @@ export const KINDS = [
   'ip-address',
   'iban',
   'matrix-id',
+  'matrix-token',
   'credential',
 ] as const;
 export type Kind = (typeof KINDS)[number];
@@ -25,8 +27,8 @@ export type Group = (typeof GROUPS)[number];
 
 /** `contextual-pii` has no kinds yet: deterministic context patterns are added to it later. */
 export const GROUP_KINDS: Record<Group, readonly Kind[]> = {
-  secrets: ['credential'],
-  'structured-pii': KINDS.filter((kind) => kind !== 'credential'),
+  secrets: ['matrix-token', 'credential'],
+  'structured-pii': KINDS.filter((kind) => kind !== 'matrix-token' && kind !== 'credential'),
   'contextual-pii': [],
 };
 
@@ -50,6 +52,7 @@ export const KIND_NAMES: Record<Kind, string> = {
   'us-passport': 'a US passport number',
   'us-driver-license': "a US driver's license number",
   'matrix-id': 'a Matrix user, room or alias id',
+  'matrix-token': 'a Matrix access, refresh or login token',
   credential: 'a credential or token',
 };
 
@@ -197,6 +200,35 @@ const TOKEN_SHAPES = [
   /\bAuthorization:\s*Bearer\s+[A-Za-z0-9._~+/=-]{16,}/i,
 ];
 
+/**
+ * Matrix tokens, which no rule set has: a prefix, a body and a six-character base62 CRC-32 of the rest. Synapse's syt_,
+ * syr_ and syl_ carry a base64 localpart and 20 letters and write the checksum most significant digit first
+ * (synapse/handlers/auth.py); the Matrix Authentication Service's mat_, mar_, mct_, mcr_ and mpt_ carry 30 letters or
+ * digits and write it least significant digit first (crates/data-model/src/tokens.rs).
+ */
+const MATRIX_TOKEN =
+  /(?<![A-Za-z0-9])(?:(sy[tr]_[A-Za-z0-9+/]+_[A-Za-z]{20}|syl_[A-Za-z]{20})|(m(?:at|ar|ct|cr|pt)_[A-Za-z0-9]{30}))_([0-9A-Za-z]{6})(?![A-Za-z0-9])/g;
+
+const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+function base62(value: number): string[] {
+  const digits: string[] = [];
+  for (let rest = value; rest > 0; rest = Math.floor(rest / 62)) {
+    digits.unshift(BASE62.charAt(rest % 62));
+  }
+  return digits;
+}
+
+// A wrong checksum passes, like an IBAN's: it is a placeholder or a typo, not a working token. The localpart's + and /
+// are read back from a URL's %2B and %2F and a JSON encoder's \/.
+function hasMatrixToken(text: string): boolean {
+  const decoded = text.replaceAll(/%2B/gi, '+').replaceAll(/%2F/gi, '/').replaceAll('\\/', '/');
+  return [...decoded.matchAll(MATRIX_TOKEN)].some(([, synapse, mas, checksum]) => {
+    const digits = base62(crc32(synapse ?? mas ?? ''));
+    return (synapse ? digits : digits.toReversed()).join('').padStart(6, '0') === checksum;
+  });
+}
+
 /** A URL's %XX and a JSON string's \n, \r and \t, read back so an escaped separator doesn't glue a value to its keyword. */
 function unescaped(text: string): string {
   return text
@@ -299,6 +331,9 @@ export async function findPersonalData(raw: string, kinds: readonly Kind[] = DEF
   }
   if (wanted.has('matrix-id') && MATRIX_ID.test(text)) {
     found.add('matrix-id');
+  }
+  if (wanted.has('matrix-token') && hasMatrixToken(text)) {
+    found.add('matrix-token');
   }
   if (wanted.has('credential') && (await hasCredential(text))) {
     found.add('credential');
