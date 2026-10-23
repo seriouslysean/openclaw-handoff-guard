@@ -36,7 +36,7 @@ Every string in the parameters is checked, nested or not, except the fields that
 
 ## Groups and kinds
 
-`secrets` holds `credential`. `structured-pii` holds every other kind; `ip-address` is in the group but not in its default kinds. `contextual-pii` is empty: its context patterns come later, and with no kinds it checks nothing in any mode.
+`secrets` holds `matrix-token` and `credential`. `structured-pii` holds every other kind; `ip-address` is in the group but not in its default kinds. `contextual-pii` is empty: its context patterns come later, and with no kinds it checks nothing in any mode.
 
 Each kind is a fixed format, so the same text gives the same verdict on every run. Within a group, the first kind found, in the order of the table in the README, names the match. Before matching, format characters (`\p{Cf}`, such as zero-width spaces) are removed and the text is folded with NFKC, so full-width digits read as digits; both the original and the folded text are checked.
 
@@ -49,6 +49,7 @@ Each kind is a fixed format, so the same text gives the same verdict on every ru
   - **us-passport:** nine digits, or a letter and eight digits, with `passport` or `travel document`.
   - **us-driver-license:** Presidio's US formats (its missing `[` restored), which include any 6 to 14 or 16 digits and match in any case, as Presidio does, with Macie's US keywords (`driver's license`, `driving licence`, `dl#`, `dl:` and the like). A match needs five characters, so class codes such as `A1` pass. A date or timestamp after `DL:` (`DL: 20261021`) blocks.
   - Left out: ABA routing numbers, which banks publish, so research on a bank would block; and card security codes and expiry dates, which identify nothing without the card number, already a kind.
+- **matrix-token:** no rule set has Matrix tokens. Synapse's `syt_`, `syr_` and `syl_` and the Matrix Authentication Service's `mat_`, `mar_`, `mct_`, `mcr_` and `mpt_` end in a six-character base62 CRC-32 of the rest, and a token matches only when it verifies, so placeholders and typos pass, as a wrong IBAN check digit does. A localpart's `+` and `/` are also recognised written as `%2B` and `%2F` or as `\/`. Formats: Synapse `synapse/handlers/auth.py` at 7c85c80, the Matrix Authentication Service `crates/data-model/src/tokens.rs` at 93b6bb2. Synapse's older macaroon tokens are not recognised. It is checked before `credential`, so the block names it.
 - **credential:** `secretlint` with `@secretlint/secretlint-rule-preset-recommend`, run on the text as if it were a file, plus JSON Web Tokens (`eyJ….eyJ….…`) and `Authorization: Bearer` headers. The preset matches provider-specific token formats and whole private keys. A generic high-entropy string, a `password=` assignment or a truncated key is not a credential to it.
 - **iban:** a country code, two digits and 11 to 30 more characters in any case, grouped by spaces, dashes or line breaks or not, then `ibantools`' country format and checksum. A wrong check digit passes.
 - **matrix-id:** `@`, `!` or `#`, a localpart with at least one letter, a colon and a server name ending in an alphabetic TLD (the Matrix specification's common identifier format), so ratios and times such as `#1:2.5x` aren't ids.

@@ -6,10 +6,12 @@ import { type HookApi, MODES, PLUGIN_ID, UNREADABLE_REASON, decide, register, re
 
 const email = { toolName: 'sessions_send', params: { agentId: 'helper', message: 'mail someone@example.org' } };
 
-const SECRETS_DEFAULT = ['credential'];
-const STRUCTURED_DEFAULT = DEFAULT_KINDS.filter((kind) => kind !== 'credential');
+const SECRETS_DEFAULT = ['matrix-token', 'credential'];
+const STRUCTURED_DEFAULT = DEFAULT_KINDS.filter((kind) => !SECRETS_DEFAULT.includes(kind));
 const credentialText = ['gh', 'p_', 'a'.repeat(36)].join('');
 const credential = { toolName: 'sessions_send', params: { agentId: 'helper', message: `token ${credentialText}` } };
+const matrixToken = ['syt', 'Y2FkZGVybHk', 'GuenhwyvarIcingdaleS', '066Dhg'].join('_');
+const matrix = { toolName: 'sessions_send', params: { agentId: 'helper', message: `access_token: ${matrixToken}` } };
 const clean = { toolName: 'sessions_send', params: { agentId: 'helper', message: 'papers on sparse attention' } };
 const main = { agentId: 'main' };
 const blocks = (result: unknown) => typeof result === 'object' && result !== null && 'block' in result;
@@ -83,6 +85,16 @@ test('a secret is blocked in its own group and named as such', async () => {
   assert.match(result.blockReason, /secrets/);
   assert.match(result.blockReason, /credential or token/);
   assert.doesNotMatch(result.blockReason, new RegExp(credentialText));
+});
+
+test('a Matrix token is blocked by default through the secrets group, and passes when secrets is off', async () => {
+  const result = await decide(matrix, main, resolveConfig({}));
+  assert.ok(result && 'block' in result);
+  assert.match(result.blockReason, /\(secrets\)/);
+  assert.match(result.blockReason, /Matrix access, refresh or login token/);
+  assert.doesNotMatch(result.blockReason, new RegExp(matrixToken));
+  assert.equal(await decide(matrix, main, resolveConfig({ groups: { secrets: { mode: 'off' } } })), undefined);
+  assert.equal(await decide(matrix, main, resolveConfig({ groups: { secrets: { kinds: ['credential'] } } })), undefined);
 });
 
 test('only a known target with an override is exempt; a label or an unmapped session is checked', async () => {
@@ -225,6 +237,11 @@ test('the manifest id, groups, modes and kinds match the code', async () => {
   assert.match(text, new RegExp(JSON.stringify(MODES).replaceAll(/[[\]]/g, '\\$&')));
   for (const group of GROUPS) {
     assert.ok(text.includes(`"${group}"`), group);
+  }
+  const enums = [...text.matchAll(/"kinds":\{"type":"array","items":\{"type":"string","enum":(\[[^\]]*\])/g)];
+  assert.equal(enums.length, 4);
+  for (const [, list] of enums) {
+    assert.equal(list, JSON.stringify(KINDS));
   }
 });
 
