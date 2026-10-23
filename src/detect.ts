@@ -2,6 +2,7 @@ import { redact } from '@arcjet/redact';
 import { createEngine } from '@secretlint/node';
 import { electronicFormatIBAN, isValidIBAN } from 'ibantools';
 import { crc32 } from 'node:zlib';
+import { runGitleaks } from './gitleaks.ts';
 
 /** Every kind the guard can recognise. Each is a fixed format, so a match is the same on every run. */
 export const KINDS = [
@@ -279,13 +280,24 @@ function engine(): Engine {
   return secretlintEngine;
 }
 
-/** secretlint's recommended preset: provider token formats, private keys, basic-auth and database connection URLs. */
-async function hasCredential(text: string): Promise<boolean> {
+export interface DetectOptions {
+  /** Path to a gitleaks binary. Without one, only secretlint and the token shapes check for credentials. */
+  gitleaks?: string;
+}
+
+/**
+ * secretlint's recommended preset: provider token formats, private keys, basic-auth and database connection URLs.
+ * Then gitleaks, when a binary is set (`src/gitleaks.ts`); a gitleaks failure throws like a secretlint one.
+ */
+async function hasCredential(text: string, gitleaks: string | undefined): Promise<boolean> {
   if (TOKEN_SHAPES.some((shape) => shape.test(text))) {
     return true;
   }
   const result = await (await engine()).executeOnContent({ content: text, filePath: 'message.txt' });
-  return !result.ok;
+  if (!result.ok) {
+    return true;
+  }
+  return gitleaks !== undefined && (await runGitleaks(gitleaks, text));
 }
 
 /** For tests: forget the engine, and start the next one with factory. */
@@ -308,7 +320,11 @@ function hasIban(text: string): boolean {
 }
 
 /** The first kind of personal data found in the text, in KINDS order, or undefined. */
-export async function findPersonalData(raw: string, kinds: readonly Kind[] = DEFAULT_KINDS): Promise<Kind | undefined> {
+export async function findPersonalData(
+  raw: string,
+  kinds: readonly Kind[] = DEFAULT_KINDS,
+  options: DetectOptions = {},
+): Promise<Kind | undefined> {
   const wanted = new Set(kinds);
   const folded = normalise(raw);
   const text = folded === raw ? raw : `${raw}\n${folded}`;
@@ -335,7 +351,7 @@ export async function findPersonalData(raw: string, kinds: readonly Kind[] = DEF
   if (wanted.has('matrix-token') && hasMatrixToken(text)) {
     found.add('matrix-token');
   }
-  if (wanted.has('credential') && (await hasCredential(text))) {
+  if (wanted.has('credential') && (await hasCredential(text, options.gitleaks))) {
     found.add('credential');
   }
   return KINDS.find((kind) => found.has(kind));

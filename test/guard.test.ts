@@ -216,8 +216,9 @@ test('register adds one before_tool_call handler that uses the plugin config and
   const other = { toolName: 'sessions_send', params: { agentId: 'other', message: 'mail someone@example.org' } };
   assert.ok(blocks(await call?.handler(other, main)));
   assert.equal(await call?.handler(credential, main), undefined);
-  assert.equal(warnings.length, 1);
-  assert.doesNotMatch(warnings[0] ?? '', new RegExp(credentialText));
+  const logged = warnings.filter((line) => !line.includes('gitleaks skipped'));
+  assert.equal(logged.length, 1);
+  assert.doesNotMatch(logged[0] ?? '', new RegExp(credentialText));
 });
 
 test('register works without a logger', async () => {

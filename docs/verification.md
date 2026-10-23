@@ -15,7 +15,9 @@
   - a detector engine that fails to start is retried, not cached;
   - unreadable agent text, blocked;
   - a block reason that never echoes the value;
+  - gitleaks through a fake executable (finding, no finding, exit 1, unreadable report, timeout, stdin-only text, the flags and the pinned config), its failure following each group mode, and the skipped-with-one-warning startup;
   - the leak scan.
+- **gitleaks 8.30.1 against the real binary** (`test/gitleaks.test.ts`, runs only when `gitleaks` on `PATH`, or `GITLEAKS_BIN`, reports 8.30.1): a provider token is found, also with a `gitleaks:allow` comment; plain text and a generic `api_key = "…"` pass.
 - **Adversarial review** (read-only, before the first push): ten findings, among them an `agentId` borrowing an exemption, unchecked spawn attachments, format variants and false positives. Each one is fixed with a test, or listed as a gap in `docs/how-it-works.md`.
 - **Typecheck** against the OpenClaw 2026.10.5 plugin SDK.
 - **Loads in OpenClaw 2026.10.5:** in an isolated state directory (`OPENCLAW_STATE_DIR`), `plugins install --link --accept-capabilities` followed by `plugins inspect leak-guard --runtime --json` reports `status: loaded`, `capabilityCount: 0` and `typedHooks: [{ before_tool_call, priority 90 }]`.
@@ -23,6 +25,8 @@
 
 ## Not yet checked on a live gateway
 
+- gitleaks inside a running gateway: the binary's path being executable by the gateway user, and the spawn working under the gateway's sandbox, if any.
+- gitleaks versions other than 8.30.1.
 - An `approve` result: the pause, the approval prompt and the deny on timeout are from `plugins/plugin-permission-requests.md` and `plugins/hooks/tool-policy.md` (2026.10.5), not run.
 - Where `api.logger.warn` lines go and whether the host redacts or rate-limits them: the logger's methods are documented (`plugins/sdk-runtime.md`), its sink and format are not.
 - Whether the host rejects a config with an unknown mode or kind at validation (the manifest schema lists the values) or passes it to the plugin, which then falls back to the default.
