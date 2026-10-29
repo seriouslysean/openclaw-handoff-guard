@@ -10,7 +10,7 @@ Rules for working in this repo.
 6. Keep everything setup-agnostic: no agent names, hostnames, paths, chat ids or job names from any real setup, in code, tests, docs, commits, issues or pull requests.
 7. Build fixtures from synthetic values: reserved domains (RFC 2606), fictional or published test numbers, and token shapes assembled at run time.
 8. Ship a fix with a test you have watched fail without it.
-9. Name a test for the failure it prevents.
+9. Before writing or changing a test, read https://github.com/splitleafhq/.github/blob/main/docs/testing.md.
 10. Cite the OpenClaw version, and a docs page or source file, for any claim about OpenClaw behaviour, and label anything not yet checked on a live gateway as unverified in `docs/verification.md`.
 11. Pin every tool, action and dependency to an exact version or commit.
 12. Prefer a maintained detector package to a hand-written pattern. Runtime dependencies are the detectors in `package.json` and one pinned detector binary run as a separate process: gitleaks, a release artifact pinned by version and SHA-256. A new one needs its maintenance and licence in the pull request.
